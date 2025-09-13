@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 //线性表抽象类，暂时不加入重载
-template <typename T>
+template <class T>
 class LinearList {
 public:
     LinearList() {};
@@ -24,7 +24,7 @@ public:
 };
 
 //顺序表子类
-template <typename T>
+template <class T>
 class SeqList : public LinearList<T> {
 public:
     SeqList(int size,int length_now = 0):maxSize(size),length(length_now){//输入为最大大小
