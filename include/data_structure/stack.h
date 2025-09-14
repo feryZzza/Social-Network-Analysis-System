@@ -3,14 +3,15 @@
 
 #include <iostream>
 
+
 template<class T>
 class StackBase{
 public:
     StackBase() {}
     ~StackBase() {}
-    virtual bool push(const T& elem) = 0; //入栈
+    virtual bool push(const T& x) = 0; //入栈
     virtual T pop() = 0; //出栈
-    virtual T top() = 0; //取栈顶元素
+    virtual T& top() = 0; //取栈顶元素
     virtual bool empty() = 0; //栈是否为空
     virtual bool full() = 0; //栈是否为满
     virtual int size() = 0; //栈的大小
@@ -27,16 +28,16 @@ public:
     ~SeqStack(){
         delete[] data;
     }
-    bool push(const T& elem) override{
+    bool push(const T& x) override{
         if(full()) return false; //栈满
-        data[++topIndex] = elem;
+        data[++topIndex] = x;
         return true;
     }
     T pop() override{
         if(empty()) throw std::out_of_range("栈为空");
         return data[topIndex--];//栈顶元素出栈,并且返回原栈顶元素
     }
-    T top() override{
+    T& top() override{
         if(empty()) throw std::out_of_range("栈为空");
         return data[topIndex];//返回栈顶元素
     }
@@ -46,6 +47,19 @@ public:
     void clear() override{topIndex = -1;}
     bool full() override{return topIndex >= maxSize - 1;};
 
+    //重载输出
+    friend std::ostream& operator<< (std::ostream& os,SeqStack<T>& stack) {//重载输出
+        //输出形如[a b c d],从栈顶到栈底，与链栈相同
+        os << "[";
+        for (int i = stack.topIndex; i >= 0; i--) {
+            os << stack.data[i];
+            if (i != 0) os << " ";
+        }
+        os << "]";
+
+        return os;
+    }
+
 private:
     T* data; //存储空间基址
     int maxSize; //存储空间的最大容量
@@ -53,37 +67,38 @@ private:
 };
 //链栈
 template<class T>
-class Node{
+class StackNode{
 public:
+    StackNode<T>() : next(nullptr) {}
     T data; // 数据域
-    Node* next; // 指针
+    StackNode* next; // 指针
 };
 
 template<class T>
-class LinkStack : public StackBase<T>{
+class LinkStack : public StackBase<T>{//以链表头为栈顶实现
 public:
     LinkStack():topNode(nullptr),length(0){}
     ~LinkStack(){
         clear();
     }
-    bool push(const T& elem) override{
-        Node<T>* newNode = new Node<T>();
-        newNode->data = elem;
-        newNode->next = topNode;
-        topNode = newNode;
+    bool push(const T& x) override{
+        StackNode<T>* newStackNode = new StackNode<T>();
+        newStackNode->data = x;
+        newStackNode->next = topNode;
+        topNode = newStackNode;
         length++;
         return true;
     }
     T pop() override{
         if(empty()) throw std::out_of_range("栈为空");
-        Node<T>* toDelete = topNode;
-        T elem = toDelete->data;
+        StackNode<T>* toDelete = topNode;
+        T x = toDelete->data;
         topNode = topNode->next;
         delete toDelete;
         length--;
-        return elem;
+        return x;
     }
-    T top() override{
+    T& top() override{
         if(empty()) throw std::out_of_range("栈为空");
         return topNode->data;
     }
@@ -95,8 +110,22 @@ public:
         }
     }
     bool full() override{return false;} //链栈不会满
+
+    //重载输出
+    friend std::ostream& operator<< (std::ostream& os,LinkStack<T>& stack) {//重载输出
+        //输出形如[a b c d],按照链表从topNode开始向后输出，从栈顶到栈底
+        os << "[";
+        StackNode<T>* current = stack.topNode;
+        while(current != nullptr) {
+            os << current->data;
+            if (current->next != nullptr) os << " ";
+            current = current->next;
+        }
+        os << "]";
+        return os;
+    }
 private:
-    Node<T>* topNode; //栈顶节点
+    StackNode<T>* topNode; //栈顶节点
     int length; //栈的长度
 };
 

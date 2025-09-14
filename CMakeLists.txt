@@ -9,6 +9,7 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SRC_FILES ${SRC_DIR}/*.cpp)
+file(GLOB_RECURSE HEADER_FILES ${INCLUDE_DIR}/*.h)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES} main.cpp)
 

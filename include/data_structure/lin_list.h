@@ -3,9 +3,12 @@
 
 #include <iostream>
 #include <iostream>
+#include <ostream>
 #include <stdexcept>
 
 //线性表抽象类，暂时不加入重载
+
+
 template <class T>
 class LinearList {
 public:
@@ -15,12 +18,12 @@ public:
     virtual bool empty() = 0; // 判断线性表是否为空
     virtual bool full() = 0; // 判断线性表是否为满
     virtual int size() = 0; // 获取线性表的当前长度
-    virtual bool insert(int index, const T& elem) = 0; // 插入元素
-    virtual bool add(const T& elem) = 0; // 添加元素到末尾
+    virtual bool insert(int index, const T& x) = 0; // 插入元素
+    virtual bool add(const T& x) = 0; // 添加元素到末尾
     virtual bool remove(int index) = 0; // 删除元素
-    virtual int locate(const T& elem) = 0; // 按值查找元素
-    virtual bool getElem(int index, T& elem) = 0; // 按位查找元素
-    virtual bool setElem(int index, const T& elem) = 0; // 按位修改元素
+    virtual int locate(const T& x,int num = 1) = 0; // 按值查找元素,num表示查找第几个出现的该值，默认查找第一个
+    virtual bool getx(int index, T& x) = 0; // 按位查找元素
+    virtual bool setx(int index, const T& x) = 0; // 按位修改元素
 };
 
 //顺序表子类
@@ -38,21 +41,21 @@ public:
     bool full() override {return length >= maxSize;};//返回是否为满
     int size() override {return length;};//返回当前长度
 
-    bool insert(int index, const T& elem) override {//插入元素
+    bool insert(int index, const T& x) override {//插入元素
         if(!index_safe(index)&&index!=0) return false;
         if(full()) return false;
         //安全检查通过后，进行插入
         for (int i = length; i > index; i--){//后移
             data[i] = data[i - 1];
         }
-        data[index] = elem;
+        data[index] = x;
         length++;
         return true;
     }
 
-    bool add(const T& elem) override {//添加元素到末尾
+    bool add(const T& x) override {//添加元素到末尾
         if(full()) return false;
-        data[length] = elem;
+        data[length] = x;
         length++;
         return true;
     }
@@ -66,22 +69,26 @@ public:
         return true;
     }
 
-    int locate(const T& elem) override {//按值查找元素
+    int locate(const T& x,int num = 1) override {//按值查找元素
+        int count = 0;
         for (int i = 0; i < length; i++) {
-            if(data[i]==elem)return i;
+            if(data[i]==x){
+                count++;
+                if(count == num)return i;
+            }
         }
         return -1; // 未找到
     }
 
-    bool getElem(int index, T& elem) override {//按位查找元素
+    bool getx(int index, T& x) override {//按位查找元素
         if(!index_safe(index)) return false;
-        elem = data[index];
+        x = data[index];
         return true;
     }
 
-    bool setElem(int index, const T& elem) override {//按位修改元素
+    bool setx(int index, const T& x) override {//按位修改元素
         if(!index_safe(index)) return false;
-        data[index] = elem;
+        data[index] = x;
         return true;
     }
     
@@ -94,6 +101,16 @@ public:
         }
         return data[index];
     }
+    friend std::ostream& operator<< (std::ostream& os,SeqList<T>& list) {//重载输出
+        //输出形如[a b c d]
+        os << "[";
+        for (int i = 0; i < list.length; i++) {
+            os << list.data[i];
+            if (i != list.length - 1) os << " ";
+        }
+        os << "]";
+        return os;
+    }
 
 private:
     T* data; // 存储空间基址
@@ -103,10 +120,11 @@ private:
 
 // 链式表节点类
 template <class T>
-class Node{
+class ListNode{
 public:
+    ListNode<T>(): next(nullptr) {}
     T data; // 数据域
-    Node* next; // 指针
+    ListNode* next; // 指针
 };
 
 template <class T>
@@ -115,47 +133,47 @@ class LinkList : public LinearList<T> {
 public:
     LinkList() : head(nullptr), length(0),tail(nullptr) {} // 构造函数
     ~LinkList() { //析构函数,递归删除所有节点
-        Node<T>* current = head;
+        ListNode<T>* current = head;
         while(current!=nullptr) {
-            Node<T>* temp = current;
+            ListNode<T>* temp = current;
             current = current->next;
             delete temp;
         }
     }
-    bool insert(int index, const T& elem) override {//插入元素
+    bool insert(int index, const T& x) override {//插入元素
         if(!index_safe(index)&&index!=0) return false;
-        Node<T>* newNode = new Node<T>();
-        newNode->data = elem;
+        ListNode<T>* newListNode = new ListNode<T>();
+        newListNode->data = x;
         if(index == 0) {//插入头节点
-            newNode->next = head;
-            head = newNode;
-            tail = newNode;
+            newListNode->next = head;
+            head = newListNode;
+            tail = newListNode;
         }else if(index < length){//插入中间节点
-            Node<T>* current = head;
+            ListNode<T>* current = head;
             for(int i = 0; i < index - 1; i++) {
                 current = current->next;
             }
-            newNode->next = current->next;
-            current->next = newNode;
+            newListNode->next = current->next;
+            current->next = newListNode;
         }else if(index == length){//插入尾节点
-            tail->next = newNode;
-            newNode->next = nullptr;
-            tail = newNode;
+            tail->next = newListNode;
+            newListNode->next = nullptr;
+            tail = newListNode;
         }
         length++;
         return true;
     }
 
-    bool add(const T& elem) override {//添加元素到末尾
-        Node<T>* newNode = new Node<T>();
-        newNode->data = elem;
-        newNode->next = nullptr;
+    bool add(const T& x) override {//添加元素到末尾
+        ListNode<T>* newListNode = new ListNode<T>();
+        newListNode->data = x;
+        newListNode->next = nullptr;
         if(tail == nullptr) {//空链表
-            head = newNode;
-            tail = newNode;
+            head = newListNode;
+            tail = newListNode;
         }else{
-            tail->next = newNode;
-            tail = newNode;
+            tail->next = newListNode;
+            tail = newListNode;
         }
         length++;
         return true;
@@ -163,13 +181,13 @@ public:
 
     bool remove(int index) override {
         if(!index_safe(index)) return false;
-        Node<T>* toDelete;
+        ListNode<T>* toDelete;
         if(index == 0) {//删除头节点
             toDelete = head;
             head = head->next;
             if(head == nullptr) tail = nullptr; // 如果链表变空，更新tail
         }else{
-            Node<T>* current = head;
+            ListNode<T>* current = head;
             for(int i = 0; i < index - 1; i++) {
                 current = current->next;
             }
@@ -182,34 +200,38 @@ public:
         return true;
     }
 
-    int locate(const T& elem) override {//按值查找元素
-        Node<T>* current = head;
+    int locate(const T& x,int num = 1) override {//按值查找元素
+        ListNode<T>* current = head;
         int index = 0;
+        int count = 0;
         while(current != nullptr) {
-            if(current->data == elem) return index;
+            if(current->data == x){
+                count++;
+                if(count == num) return index;
+            }
             current = current->next;
             index++;
         }
         return -1; // 未找到
     }
 
-    bool getElem(int index, T& elem) override {//按位查找元素
+    bool getx(int index, T& x) override {//按位查找元素
         if(!index_safe(index)) return false;
-        Node<T>* current = head;
+        ListNode<T>* current = head;
         for(int i = 0; i < index; i++) {
             current = current->next;
         }
-        elem = current->data;
+        x = current->data;
         return true;
     }
 
-    bool setElem(int index, const T& elem) override {//按位修改元素
+    bool setx(int index, const T& x) override {//按位修改元素
         if(!index_safe(index)) return false;
-        Node<T>* current = head;
+        ListNode<T>* current = head;
         for(int i = 0; i < index; i++) {
             current = current->next;
         }
-        current->data = elem;
+        current->data = x;
         return true;
     }
 
@@ -223,16 +245,29 @@ public:
         if (!index_safe(index)) {
             throw std::out_of_range("Index不在范围内");
         }
-        Node<T>* current = head;
+        ListNode<T>* current = head;
         for(int i = 0; i < index; i++) {
             current = current->next;
         }
         return current->data;
     }
+    //重载输出
+    friend std::ostream& operator<< (std::ostream& os,LinkList<T>& list) {
+        //输出形如[a b c d]
+        os << "[";
+        ListNode<T>* current = list.head;
+        while(current != nullptr) {
+            os << current->data;
+            if(current->next != nullptr) os << " ";
+            current = current->next;
+        }
+        os << "]";
+        return os;
+    }
 
 private:
-    Node<T>* head; // 头指针
-    Node<T>* tail; // 尾指针,便于添加元素
+    ListNode<T>* head; // 头指针
+    ListNode<T>* tail; // 尾指针,便于添加元素
     int length; // 当前长度
 };
 
