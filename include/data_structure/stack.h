@@ -137,12 +137,18 @@ public:
     Fake_Stack():maxSize(10){}//默认最大容量为10
     Fake_Stack(int size):maxSize(size){}
     ~Fake_Stack() {}
-    bool push(const T& x) override{//入栈
-        if(full()){//栈满，弹出队头元素
-            deque.dequeue();
-        }
+    bool push(const T& x) override{
+        if(full()) return false; //栈满
         deque.enqueue(x);
         return true;
+    }
+    T push_and_get(const T& x) {//入栈
+        T temp;
+        if(full()){//栈满，弹出队头元素
+            temp = deque.dequeue();
+        }
+        deque.enqueue(x);
+        return temp;
     }
     T pop() override{//出栈
         if(empty()) throw std::out_of_range("栈为空");

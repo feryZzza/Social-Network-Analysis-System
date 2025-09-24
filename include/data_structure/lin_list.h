@@ -220,6 +220,24 @@ public:
         return toDelete;
     }
 
+    void auto_insert(ListNode<T>* node){//用于按从低到高排好需序的节点自动寻找位置插入，撤销时使用
+        if(head == nullptr || head->data >= node->data) {//插入头节点
+            node->next = head;
+            head = node;
+            tail = node;
+        }else{
+            ListNode<T>* current = head;
+            while(current->next != nullptr && current->next->data < node->data) {
+                current = current->next;
+            }
+            node->next = current->next;
+            current->next = node;
+            if(node->next == nullptr) tail = node; // 如果插入的是尾节点，更新tail
+        }
+        length++;
+
+    }
+
     // int locate(const T& x,int num = 1) override {//按值查找元素
     //     ListNode<T>* current = head;
     //     int index = 0;

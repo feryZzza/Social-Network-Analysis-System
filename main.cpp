@@ -25,7 +25,8 @@ int main() {
     Post post2("三角洲3✖3打累了","谁陪我农两把");
 
     clients[0].addPost(post1);
-    clients[1].addPost(post2);
+
+    //clients[1].addPost(post2);
 
     Comment comment1(&clients[1],"我懂，因为我真出了");
     
@@ -33,25 +34,44 @@ int main() {
     clients[1].addComment(&clients[0].posts[0],comment1);
     Comment comment2(&clients[0],"欧狗滚出三角洲！",2);
     clients[0].addComment(&clients[0].posts[0],comment2);
-    clients[1].addPost(post2);
+    clients[0].addPost(post1);
+    //clients[1].addPost(post2);
     clients[1].like(&clients[0].posts[0]);
-    clients[1].like(&clients[0].posts[0]);
-    cout<<clients[0].posts[0].likes_num()<<endl;
+
+
+
+    cout<<clients[0].posts[0];
+    clients[0].deletePost(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+    clients[0].like(&clients[0].posts[0]);
+
     clients[1].undo();
 
 
-
-
-
-
- 
     cout<<clients[0].posts[0];
 
-    
+
+    clients[0].undo();
+
+    clients[0].like(&clients[0].posts[0]);
+
+
+
+
+    //cout<<clients[0].posts[0].likes_num()<<endl;
+    //clients[1].undo();
+
+    //cout<<clients[0].posts.size()<<endl;
     
     //cout << cl1;
 
-
-    
     return 0;
 }

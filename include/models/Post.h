@@ -20,10 +20,20 @@ public:
     void receive_likes(Client* liker,bool undo=false);
     int comments_num(){return comment_list.size();}
     int likes_num(){return likes;}
+    void set_idex(int i){idex = i;}
+    int get_idex(){return idex;}
+    void undo_check(Post* p);//彻底删除帖子前检查涉及到的操作栈，防止野指针
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Post& p);
+    //重载比较运算符
+    bool operator==(const Post& other) const {return this->idex == other.idex;}
+    bool operator<=(const Post& other) const {return this->idex <= other.idex;}
+    bool operator<(const Post& other) const {return this->idex < other.idex;}
+    bool operator>(const Post& other) const {return this->idex > other.idex;}
+    bool operator>=(const Post& other) const {return this->idex >= other.idex;}
+    Client* author; //作者指针
 private:
-    int floor = 1;//评论楼层数，借鉴贴吧
+    int floor = 1;//评论楼层数，借鉴贴吧,每添加一个评论楼层数加一，不会因为删除评论而减少，楼主永远是1楼
     std::string title;//帖子标题
     std::string author_name;//帖子作者
     std::string content;//帖子内容
@@ -31,6 +41,6 @@ private:
     int idex = 0;//帖子的序号
     LinkList<Comment> comment_list; //评论列表
     LinkList<Client*> likes_list; //点赞用户列表
-    Client* author; //作者指针
+    
 };
 #endif

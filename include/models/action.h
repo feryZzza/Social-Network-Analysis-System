@@ -15,23 +15,39 @@ class Post;
 
 class Action{//用来表示操作，用于实现模块二撤销功能
 public:
-    virtual bool undo(){return false;};//主动从栈中弹出操作并撤销
+    Action() {}
+    virtual ~Action() {}
+    virtual bool undo(){cout<<"action基类"<<endl;};//主动从栈中弹出操作并撤销
+    bool check();
     bool is_add = 0;//是添加操作还是删除操作
+    void init(Client* client,bool add,Post* p);
     bool used = 0;//操作是否已经被撤销过
-    int index = -1;//操作的对象的位置
+    
     Client* client = nullptr;//操作的用户
+    Client* poster = nullptr;//操作涉及的帖子的作者
+    int index = -1;//操作涉及帖子的位置
+    Post* post = nullptr;//操作涉及的帖子
+};
+
+class PostAction: public Action{//发帖操作
+public:
+    PostAction(ListNode<Post>* post_node) : post_node(post_node) {}
+    PostAction() {}
+    ~PostAction() override;
+
+    bool undo() override;//主动从栈中弹出操作并撤销
+    //每次彻底删除帖子时调用，检查该操作的帖子是否被删除，若被删除则将post指针置为空,防止野指针
+    ListNode<Post>* post_node;//操作的帖子的节点指针
 };
 
 
 class LikeAction: public Action{//点赞操作
 public:
-    LikeAction(Post* post) : post(post) {}
     LikeAction() {}
-    ~LikeAction();
+    ~LikeAction() override {};
 
-    void init(Client* client,bool add){this->client = client,is_add=add;}//初始化
     bool undo() override;//主动从栈中弹出操作并撤销
-    Post* post;//操作的帖子
+    //每次彻底删除帖子时调用，检查该操作的帖子是否被删除，若被删除则将post指针置为空,防止野指针
 };
 
 #endif

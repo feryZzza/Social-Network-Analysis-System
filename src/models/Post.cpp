@@ -22,9 +22,15 @@ void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点�
             likes_list.remove(i);//因为点赞只会有一个，所以直接移除
             likes--;
             if(undo) return;//撤销操作不添加操作到栈中
-            LikeAction* action = new LikeAction(this);
-            action->init(liker,0);//初始化操作
-            liker->add_action(action);//将操作压入操作栈
+            LikeAction* action = new LikeAction();
+            action->init(liker,0,this);//初始化操作
+            if(liker->a_stack_full()){
+                Action* temp = liker->add_action(action);//将操作压入操作栈
+                delete temp;//删除栈底操作
+                temp = nullptr;
+            }else{
+                liker->add_action(action);//将操作压入操作栈
+            }
 
             return;
         }
@@ -32,9 +38,18 @@ void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点�
     if(likes_list.add(liker)){
         likes++;
         if(undo) return;//撤销操作不添加操作到栈中
-        LikeAction* action = new LikeAction(this);
-        action->init(liker,1);//初始化操作
+        LikeAction* action = new LikeAction();
+        action->init(liker,1,this);//初始化操作
         liker->add_action(action);//将操作压入操作栈
+    }
+    return;
+}
+
+void Post::undo_check(Post *p){
+    //彻底删除帖子前检查涉及到的操作栈，防止野指针
+    for(int i = 0; i < likes_list.size(); i++){
+        Client* a = likes_list[i];
+        
     }
     return;
 }
@@ -44,6 +59,7 @@ std::ostream& operator<< (std::ostream& os,Post& p) {//重载输出
     os << "标题: " << p.title << "\n";
     os << "作者: " << p.author_name << "\n";
     os << "内容: " << p.content << "\n\n";
+    os << "序号" << p.idex << "\n";
     //根据点赞数输出点赞用户,如果点赞数大于5只输出前5个，形如“用户1,用户2.....用户5等6人赞过”
     if(p.likes > 0){
         int limit = p.likes < 5 ? p.likes : 5;
