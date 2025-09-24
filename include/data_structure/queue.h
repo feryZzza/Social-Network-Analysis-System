@@ -156,7 +156,7 @@ template<class T>
 class Deque : public Queue<T>{//双端队列的顺序实现
 public:
     Deque(int size):data(size){}//空队列
-    ~Deque() override{}
+    ~Deque() {}
     bool empty() override{return data.empty();}
     bool full() override{return data.full();}
     int size() override{return data.size();}
@@ -203,7 +203,7 @@ template<class T>
 class LinkDeque : public Queue<T>{
 public:
     LinkDeque(){}//空队列
-    ~LinkDeque() override{}
+    ~LinkDeque() {}
     bool empty() override{return linkQueue.empty();}
     bool full() override{return linkQueue.full();}
     int size() override{return linkQueue.size();}
