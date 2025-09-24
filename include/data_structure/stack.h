@@ -2,6 +2,7 @@
 #define STACK_H
 
 #include <iostream>
+#include "data_structure/queue.h"
 
 
 template<class T>
@@ -127,6 +128,13 @@ public:
 private:
     StackNode<T>* topNode; //栈顶节点
     int length; //栈的长度
+};
+
+template<class T>
+class Fake_Stack : public StackBase<T>{
+//伪栈，实际上是个队列,在没满的情况下，只能从队尾入栈，从队尾出栈。在满的情况下，再次入栈会弹出队头元素
+
+
 };
 
 

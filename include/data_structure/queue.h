@@ -152,4 +152,51 @@ private:
     int length; //队列长度
 };
 
+template<class T>
+class Deque : public Queue<T>{//双端队列的顺序实现
+public:
+    Deque(int size):data(size){}//空队列
+    ~Deque() override{}
+    bool empty() override{return data.empty();}
+    bool full() override{return data.full();}
+    int size() override{return data.size();}
+    void clear() override{data.clear();}
+    void enqueue(const T& x) override{//从队尾入队
+        data.enqueue(x);
+    }
+    void enqueueFront(const T& x){//从队头入队
+        if(full()) throw std::out_of_range("队列已满");
+        int newFront = (data.Front - 1 + data.maxSize) % data.maxSize;
+        data.data[newFront] = x;
+        data.Front = newFront;
+        if(data.Front == data.Rear) data.tag = 1; //更新tag
+    }
+    T dequeue() override{//从队头出队
+        return data.dequeue();
+    }
+    T dequeueRear(){//从队尾出队
+        if(empty()) throw std::out_of_range("队列为空");
+        int newRear = (data.Rear - 1 + data.maxSize) % data.maxSize;
+        T x = data.data[newRear];
+        data.Rear = newRear;
+        if(data.Front == data.Rear) data.tag = 0; //更新tag
+        return x;
+    }
+    T& front() override{//取队头元素
+        return data.front();
+    }
+    T& rear(){//取队尾元素
+        if(empty()) throw std::out_of_range("队列为空");
+        int rearIndex = (data.Rear - 1 + data.maxSize) % data.maxSize;
+        return data.data[rearIndex];
+    }
+    //重载输出,从队列头到队列尾输出
+    friend std::ostream& operator<< (std::ostream& os,Deque<T>& queue) {//重载输出
+        os << queue.data;
+        return os;
+    }
+private:
+    SeqQueue<T> data;
+};
+
 #endif
