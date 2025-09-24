@@ -133,8 +133,46 @@ private:
 template<class T>
 class Fake_Stack : public StackBase<T>{
 //伪栈，实际上是个队列,在没满的情况下，只能从队尾入栈，从队尾出栈。在满的情况下，再次入栈会弹出队头元素
+public:
+    Fake_Stack(int size):maxSize(size){}
+    ~Fake_Stack() override{}
+    bool push(const T& x) override{//入栈
+        if(full()){//栈满，弹出队头元素
+            deque.dequeue();
+        }
+        deque.enqueue(x);
+        return true;
+    }
+    T pop() override{//出栈
+        if(empty()) throw std::out_of_range("栈为空");
+        return deque.dequeueRear();//从队尾出队
+    }
+    T& top() override{//取栈顶元素
+        if(empty()) throw std::out_of_range("栈为空");
+        return deque.rear();//取队尾元素
+    }
+    bool empty() override{return deque.empty();}
+    int size() override{return deque.size();}
+    void clear() override{deque.clear();}
+    bool full() override{return deque.size() >= maxSize;}
 
-
+    //重载输出
+    friend std::ostream& operator<< (std::ostream& os,Fake_Stack<T>& stack) {//重载输出
+        //输出形如[a b c d],从栈顶到栈底，与链栈相同
+        os << "[";
+        if(!stack.empty()){
+            LinkDeque<T> tempDeque = stack.deque; //创建一个临时的deque来保存原始数据
+            while(!tempDeque.empty()){
+                os << tempDeque.dequeueRear(); //从队尾出队，模拟栈的顺序
+                if(!tempDeque.empty()) os << " ";
+            }
+        }
+        os << "]";
+        return os;
+    }
+private:
+    LinkDeque<T> deque;
+    int maxSize;
 };
 
 

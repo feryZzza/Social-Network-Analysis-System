@@ -199,4 +199,65 @@ private:
     SeqQueue<T> data;
 };
 
+template<class T>
+class LinkDeque : public Queue<T>{
+public:
+    LinkDeque(){}//空队列
+    ~LinkDeque() override{}
+    bool empty() override{return linkQueue.empty();}
+    bool full() override{return linkQueue.full();}
+    int size() override{return linkQueue.size();}
+    void clear() override{linkQueue.clear();}
+    void enqueue(const T& x) override{//从队尾入队
+        linkQueue.enqueue(x);
+    }
+    void enqueueFront(const T& x){//从队头入队
+        QNode<T>* newNode = new QNode<T>();
+        newNode->data = x;
+        newNode->next = linkQueue.Front;
+        linkQueue.Front = newNode;
+        if(linkQueue.Rear == nullptr) linkQueue.Rear = newNode; //如果原来队列为空，更新Rear指针
+        linkQueue.length++;
+    }
+    T dequeue() override{//从队头出队
+        return linkQueue.dequeue();
+    }
+    T dequeueRear(){//从队尾出队
+        if(empty()) throw std::out_of_range("队列为空");
+        if(linkQueue.Front == linkQueue.Rear){//只有一个元素
+            T x = linkQueue.Rear->data;
+            delete linkQueue.Rear;
+            linkQueue.Front = nullptr;
+            linkQueue.Rear = nullptr;
+            linkQueue.length--;
+            return x;
+        }
+        //找到倒数第二个节点
+        QNode<T>* current = linkQueue.Front;
+        while(current->next != linkQueue.Rear){
+            current = current->next;
+        }
+        T x = linkQueue.Rear->data;
+        delete linkQueue.Rear;
+        linkQueue.Rear = current;
+        linkQueue.Rear->next = nullptr;
+        linkQueue.length--;
+        return x;
+    }
+    T& front() override{//取队头元素
+        return linkQueue.front();
+    }
+    T& rear(){//取队尾元素
+        if(empty()) throw std::out_of_range("队列为空");
+        return linkQueue.Rear->data;
+    }
+    //重载输出,从队列头到队列尾输出
+    friend std::ostream& operator<< (std::ostream& os,LinkDeque<T>& queue) {//重载输出
+        os << queue.linkQueue;
+        return os;
+    }
+private:
+    LinkQueue<T> linkQueue;
+};//双端队列的链式实现
+
 #endif
