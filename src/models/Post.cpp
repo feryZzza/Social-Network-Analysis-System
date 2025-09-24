@@ -16,18 +16,26 @@ void Post::addComment(Comment &c,Client* commenter){
     return;
 }
 
-void Post::receive_likes(Client* liker){//重复点赞变为取消点赞功能，参考朋友圈
+void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点赞功能，参考朋友圈
     for(int i = 0; i < likes_list.size(); i++){
         if(*likes_list[i] == *liker){//已经点过赞，取消点赞
+            likes_list.remove(i);//因为点赞只会有一个，所以直接移除
+            likes--;
+            if(undo) return;//撤销操作不添加操作到栈中
             LikeAction* action = new LikeAction(this);
             action->init(liker,0);//初始化操作
             liker->add_action(action);//将操作压入操作栈
-            likes_list.remove(i);//因为点赞只会有一个，所以直接移除
-            likes--;
+
             return;
         }
     }
-    if(likes_list.add(liker))likes++;
+    if(likes_list.add(liker)){
+        likes++;
+        if(undo) return;//撤销操作不添加操作到栈中
+        LikeAction* action = new LikeAction(this);
+        action->init(liker,1);//初始化操作
+        liker->add_action(action);//将操作压入操作栈
+    }
     return;
 }
 //重载输出

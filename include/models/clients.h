@@ -29,12 +29,13 @@ public:
         else comments_received--;
     }
     void add_action(Action* a){a_stack.push(a);}//添加操作到操作假栈
-    void like(Post* post);
+    void like(Post* post,bool undo=false);
     LinkList<Post> posts; //用户发布的帖子列表
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Client& c);
     //重载==
     bool operator==(const Client& other) const {return this->name == other.name;}
+    int action_num(){return a_stack.size();}
 
 private:
     string name;//用户昵称

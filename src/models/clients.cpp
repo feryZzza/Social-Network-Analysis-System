@@ -2,7 +2,10 @@
 #include "models/Post.h"
 
 bool Client::undo(){//撤销上一次操作
-    if(a_stack.empty()) return false;
+    if(a_stack.empty()){
+        cout<<"没有操作可以撤销"<<endl;
+        return false;
+    }
     Action* a = a_stack.pop();
     a->undo();
     return true;
@@ -22,8 +25,8 @@ void Client::addComment(Post* post, Comment &comment){
     return;
 }
 
-void Client::like(Post* post){//点赞帖子
-    post->receive_likes(this);
+void Client::like(Post* post,bool undo){//点赞帖子
+    post->receive_likes(this,undo);
     return;
 }
 //重载输出

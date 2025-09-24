@@ -17,8 +17,9 @@ public:
     Post(std::string title, std::string content) : title(title), content(content), likes(0) {}
     void addComment(Comment &c,Client* commenter);
     void set_author(Client* a);
-    void receive_likes(Client* liker);
+    void receive_likes(Client* liker,bool undo=false);
     int comments_num(){return comment_list.size();}
+    int likes_num(){return likes;}
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Post& p);
 private:

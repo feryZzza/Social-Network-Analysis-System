@@ -33,13 +33,18 @@ int main() {
     clients[1].addComment(&clients[0].posts[0],comment1);
     Comment comment2(&clients[0],"欧狗滚出三角洲！",2);
     clients[0].addComment(&clients[0].posts[0],comment2);
-
-    clients[0].addPost(post1);
     clients[1].addPost(post2);
     clients[1].like(&clients[0].posts[0]);
     clients[1].like(&clients[0].posts[0]);
+    cout<<clients[0].posts[0].likes_num()<<endl;
     clients[1].undo();
 
+
+
+
+
+
+ 
     cout<<clients[0].posts[0];
 
     
