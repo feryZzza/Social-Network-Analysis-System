@@ -13,7 +13,7 @@ void Client::addPost(Post p){
     posts.add(p);
 }
 void Client::deletePost(int index){
-    posts.remove(index);
+    posts.fake_remove(index);
 }
 //重载输出
 std::ostream& operator<< (std::ostream& os,Client& c) {//重载输出

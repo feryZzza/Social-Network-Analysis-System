@@ -5,8 +5,10 @@
 #include "data_structure/stack.h"
 #include "data_structure/queue.h"
 #include "models/clients.h"
+#include "models/comment.h"
 
 class Client;
+class Comment;
 
 class Post{
 public:
@@ -22,7 +24,7 @@ private:
     std::string content;//帖子内容
     int likes;//点赞数
     int comments;//评论数
-    LinkList<std::string> comment_list; //评论列表
+    LinkList<Comment> comment_list; //评论列表
     Client* author; //作者指针
 };
 #endif

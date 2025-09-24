@@ -20,7 +20,7 @@ public:
     bool undo();
     void addPost(Post p);
     void deletePost(int index);
-    inline string Name(){return name;}
+    string Name(){return name;}
     LinkList<Post> posts; //用户发布的帖子列表
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Client& c);

@@ -200,6 +200,26 @@ public:
         return true;
     }
 
+    ListNode<T>* fake_remove(int index) {//用于完成撤销操作，返回被删除节点的指针
+        if(!index_safe(index)) return nullptr;
+        ListNode<T>* toDelete;
+        if(index == 0) {//删除头节点
+            toDelete = head;
+            head = head->next;
+            if(head == nullptr) tail = nullptr; // 如果链表变空，更新tail
+        }else{
+            ListNode<T>* current = head;
+            for(int i = 0; i < index - 1; i++) {
+                current = current->next;
+            }
+            toDelete = current->next;
+            current->next = toDelete->next;
+            if(toDelete == tail) tail = current; // 如果删除的是尾节点，更新tail
+        }
+        length--;
+        return toDelete;
+    }
+
     // int locate(const T& x,int num = 1) override {//按值查找元素
     //     ListNode<T>* current = head;
     //     int index = 0;
@@ -264,6 +284,8 @@ public:
         os << "]";
         return os;
     }
+    //返回尾节点指针,const修饰
+    ListNode<T>* tail_ptr() const {return tail;}
 
 private:
     ListNode<T>* head; // 头指针
