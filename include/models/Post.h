@@ -32,6 +32,7 @@ public:
     bool operator>(const Post& other) const {return this->idex > other.idex;}
     bool operator>=(const Post& other) const {return this->idex >= other.idex;}
     Client* author; //作者指针
+    LinkList<Comment> comment_list; //评论列表
 private:
     int floor = 1;//评论楼层数，借鉴贴吧,每添加一个评论楼层数加一，不会因为删除评论而减少，楼主永远是1楼
     std::string title;//帖子标题
@@ -39,7 +40,7 @@ private:
     std::string content;//帖子内容
     int likes;//点赞数
     int idex = 0;//帖子的序号
-    LinkList<Comment> comment_list; //评论列表
+    
     LinkList<Client*> likes_list; //点赞用户列表
     
 };

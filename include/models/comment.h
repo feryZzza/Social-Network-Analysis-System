@@ -19,6 +19,13 @@ public:
 
     // 重载输出
     friend std::ostream& operator<< (std::ostream& os, const Comment& c);
+    // 重载比较符号，只比较楼层
+    bool operator==(const Comment& other) const {return this->Floor == other.Floor;}
+    bool operator<=(const Comment& other) const {return this->Floor <= other.Floor;}
+    bool operator<(const Comment& other) const {return this->Floor < other.Floor;}
+    bool operator>(const Comment& other) const {return this->Floor > other.Floor;}
+    bool operator>=(const Comment& other) const {return this->Floor >= other.Floor;}
+
 
 
 private:

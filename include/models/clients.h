@@ -30,6 +30,10 @@ public:
 
     void deletePost(Post* post);//删帖（通过帖子指针）
 
+    void deleteComment(Post* post,int floor);//删评论
+
+    void deleteComment(Post* post,Comment* comment);//删评论
+
     string Name(){return name;}//返回昵称
 
     void receive_comment(bool add){//被评论数加一或减一

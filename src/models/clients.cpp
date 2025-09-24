@@ -71,9 +71,52 @@ void Client::deletePost(Post* post){//因为有撤销功能，删除帖子只是
     return;
 }
 
+void Client::deleteComment(Post* post,Comment* comment){//删评论
+    for(int i = 0; i < post->comment_list.size(); i++){
+        if(&post->comment_list[i] == comment){
+            ListNode<Comment>* node = post->comment_list.fake_remove(i);//假删除，同时记录被删除节点的指针
+            CommentAction* action = new CommentAction(node);//创建评论操作
+            action->init(this,0,post);//初始化操作
+            
+            if(a_stack.full()){
+                Action* temp = add_action(action);//将操作压入操作栈
+                delete temp;//删除栈底操作
+                temp = nullptr;
+            }else{
+                add_action(action);//将操作压入操作栈
+            }
+            this->receive_comment(0);//被评论数减一
+            return;
+        }
+    }
+    cout<<"未找到该评论"<<endl;
+    return;
+}
+
+void Client::deleteComment(Post* post,int floor){//删评论
+    for(int i = 0; i < post->comment_list.size(); i++){
+        if(post->comment_list[i].floor() == floor){
+            deleteComment(post,&post->comment_list[i]);
+            return;
+        }
+    }
+    cout<<"未找到该评论"<<endl;
+    return;
+}
+
+
 
 void Client::addComment(Post* post, Comment &comment){
     post->addComment(comment,this);
+    CommentAction* action = new CommentAction(post->comment_list.tail_ptr());//获取新评论的节点指针
+    action->init(this,1,post);//初始化操作
+    if(a_stack.full()){
+        Action* temp = add_action(action);//将操作压入操作栈
+        delete temp;//删除栈底操作
+        temp = nullptr;
+    }else{
+        add_action(action);//将操作压入操作栈
+    }
     return;
 }
 

@@ -1,5 +1,7 @@
 #include "models/Post.h"
+#include "data_structure/lin_list.h"
 #include "models/action.h"
+#include "models/comment.h"
 
 void Post::set_author(Client* a){
     author = a;
@@ -72,15 +74,30 @@ std::ostream& operator<< (std::ostream& os,Post& p) {//重载输出
     os<< p.likes << "人赞过";
     os << "\n";
 
-    if(p.comments_num() > 0){
-        int limit = p.comments_num() < 5 ? p.comments_num() : 5;
+    //根据评论数输出评论用户,如果评论数大于5只输出前5个，形如“用户1,用户2.....用户5等6人评论过”
+    LinkList<Client*> commenters;
+
+    for(int i = 0; i < p.comment_list.size(); i++){
+        Client* commenter = p.comment_list[i].get_author();
+        bool found = false;
+        for(int j = 0; j < commenters.size(); j++){
+            if(*commenters[j] == *commenter){
+                found = true;
+                break;
+            }
+        }
+        if(!found) commenters.add(commenter);
+    }
+
+    if(commenters.size() > 0){
+        int limit = commenters.size() < 5 ? commenters.size() : 5;
         for(int i = 0; i < limit; i++){
-            os << p.comment_list[i].get_author()->Name();
+            os << commenters[i]->Name();
             if(i != limit - 1) os << ", ";
         }
         if(p.likes > 5) os << "等"; 
     }
-    os<< p.comments_num() << "人评论过\n\n";
+    os<< commenters.size() << "人评论过" <<p.comments_num()<<"条回复\n\n";
     os << "评论列表: " << p.comment_list << "\n";
     return os;
 }

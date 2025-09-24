@@ -62,3 +62,32 @@ bool LikeAction::undo() {//主动从栈中弹出点赞操作并撤销
         return true;
     }
 }
+
+CommentAction::~CommentAction(){
+    if(!poster->undo_safe_check(post))return;
+    if(!used){//操作未被撤销，说明帖子仍然存在，彻底删除帖子前检查涉及到的操作栈，防止野指针
+        if(!is_add){//删评论操作，彻底删除评论
+            poster->undo_safe_update(post);
+            delete comment_node;//删除该评论
+        }
+    }
+}
+
+bool CommentAction::undo() {//主动从栈中弹出评论操作并撤销
+    if(!check()){
+        cout<<"该评论涉及的帖子已被删除，无法撤销"<<endl;
+        used = true;
+        return false;
+    }else{
+        if(is_add){//评论操作，撤销即删评论
+            poster->deleteComment(post,comment_node->data.floor());//通过楼层删除评论
+            used = true;
+            return true;
+        }else{//删评论操作，撤销即恢复评论
+            post->comment_list.auto_insert(comment_node);//将评论按序插入评论列表
+            client->receive_comment(1);//被评论数加一
+            used = true;
+        }
+        return true;
+    }
+}
