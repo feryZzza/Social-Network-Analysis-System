@@ -134,6 +134,7 @@ template<class T>
 class Fake_Stack : public StackBase<T>{
 //伪栈，实际上是个队列,在没满的情况下，只能从队尾入栈，从队尾出栈。在满的情况下，再次入栈会弹出队头元素
 public:
+    Fake_Stack():maxSize(10){}//默认最大容量为10
     Fake_Stack(int size):maxSize(size){}
     ~Fake_Stack() {}
     bool push(const T& x) override{//入栈

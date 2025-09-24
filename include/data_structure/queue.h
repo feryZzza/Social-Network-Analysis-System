@@ -90,6 +90,9 @@ public:
 
 
 template<class T>
+class LinkDeque;//前向声明,双端队列的链式实现需要访问LinkQueue的私有成员,必须声明为友元类
+
+template<class T>
 class LinkQueue : public Queue<T>{//链队列,从链表头出队，从链表尾入队
 public:
     LinkQueue():Front(nullptr),Rear(nullptr),length(0){}//空队列
@@ -146,6 +149,7 @@ public:
         os << "]";
         return os;
     }
+    friend class LinkDeque<T>;
 private:
     QNode<T>* Front; //队头指针
     QNode<T>* Rear; //队尾指针

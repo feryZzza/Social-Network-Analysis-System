@@ -12,7 +12,8 @@
 using namespace std;
 
 int main() {
-    //Client zhangfengyuan;
+    Client zhangfengyuan("zhangfengyuan", "2022211001001306", "123456");
+    cout << zhangfengyuan;
 
     
     return 0;

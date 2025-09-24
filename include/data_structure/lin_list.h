@@ -21,7 +21,7 @@ public:
     virtual bool insert(int index, const T& x) = 0; // 插入元素
     virtual bool add(const T& x) = 0; // 添加元素到末尾
     virtual bool remove(int index) = 0; // 删除元素
-    virtual int locate(const T& x,int num = 1) = 0; // 按值查找元素,num表示查找第几个出现的该值，默认查找第一个
+    //virtual int locate(const T& x,int num = 1) = 0; // 按值查找元素,num表示查找第几个出现的该值，默认查找第一个
     virtual bool getx(int index, T& x) = 0; // 按位查找元素
     virtual bool setx(int index, const T& x) = 0; // 按位修改元素
 };
@@ -69,16 +69,16 @@ public:
         return true;
     }
 
-    int locate(const T& x,int num = 1) override {//按值查找元素
-        int count = 0;
-        for (int i = 0; i < length; i++) {
-            if(data[i]==x){
-                count++;
-                if(count == num)return i;
-            }
-        }
-        return -1; // 未找到
-    }
+    // int locate(const T& x,int num = 1) override {//按值查找元素
+    //     int count = 0;
+    //     for (int i = 0; i < length; i++) {
+    //         if(data[i]==x){
+    //             count++;
+    //             if(count == num)return i;
+    //         }
+    //     }
+    //     return -1; // 未找到
+    // }
 
     bool getx(int index, T& x) override {//按位查找元素
         if(!index_safe(index)) return false;
@@ -200,20 +200,20 @@ public:
         return true;
     }
 
-    int locate(const T& x,int num = 1) override {//按值查找元素
-        ListNode<T>* current = head;
-        int index = 0;
-        int count = 0;
-        while(current != nullptr) {
-            if(current->data == x){
-                count++;
-                if(count == num) return index;
-            }
-            current = current->next;
-            index++;
-        }
-        return -1; // 未找到
-    }
+    // int locate(const T& x,int num = 1) override {//按值查找元素
+    //     ListNode<T>* current = head;
+    //     int index = 0;
+    //     int count = 0;
+    //     while(current != nullptr) {
+    //         if(current->data == x){
+    //             count++;
+    //             if(count == num) return index;
+    //         }
+    //         current = current->next;
+    //         index++;
+    //     }
+    //     return -1; // 未找到
+    // }
 
     bool getx(int index, T& x) override {//按位查找元素
         if(!index_safe(index)) return false;
