@@ -15,34 +15,23 @@ class Post;
 
 class Action{//用来表示操作，用于实现模块二撤销功能
 public:
-    Action() {}
+    virtual bool undo(){return false;};//主动从栈中弹出操作并撤销
     bool is_add = 0;//是添加操作还是删除操作
+    bool used = 0;//操作是否已经被撤销过
     int index = -1;//操作的对象的位置
+    Client* client = nullptr;//操作的用户
 };
 
-class PostAction: public Action{//帖子操作
-public:
-    PostAction() {}
-    PostAction(bool is_add, Post*  post, int index = -1) : post(post), index(index) {this->is_add = is_add;}
-    ~PostAction();
-    Post* post;//操作的帖子
-    int index;//操作的帖子在用户帖子列表中的位置，添加操作时为-1
-};
-
-class CommentAction: public Action{//评论操作
-public:
-    CommentAction() {}
-    CommentAction(bool is_add, string comment, int post_index, int comment_index = -1) : comment(comment), post_index(post_index), comment_index(comment_index) {this->is_add = is_add;}
-    string comment;//操作的评论
-    int post_index;//操作的评论所在的帖子在用户帖子列表中的位置
-    int comment_index;//操作的评论在帖子评论列表中的位置，添加操作时为-1
-};
 
 class LikeAction: public Action{//点赞操作
 public:
+    LikeAction(Post* post) : post(post) {}
     LikeAction() {}
-    LikeAction(bool is_add, int post_index) : post_index(post_index) {this->is_add = is_add;}
-    int post_index;//操作的点赞所在的帖子在用户帖子列表中的位置
+    ~LikeAction();
+
+    void init(Client* client,bool add){this->client = client,is_add=add;}//初始化
+    bool undo() override;//主动从栈中弹出操作并撤销
+    Post* post;//操作的帖子
 };
 
 #endif

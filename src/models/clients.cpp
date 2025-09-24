@@ -3,9 +3,8 @@
 
 bool Client::undo(){//撤销上一次操作
     if(a_stack.empty()) return false;
-    Action a = a_stack.pop();
-    //根据操作类型进行撤销
-    //暂时不实现
+    Action* a = a_stack.pop();
+    a->undo();
     return true;
 }
 
@@ -13,12 +12,18 @@ void Client::addPost(Post p){
     p.set_author(this);
     posts.add(p);
 }
-void Client::deletePost(int index){
+void Client::deletePost(int index){//因为有撤销功能，删除帖子只是将其从列表中移除，并不真正删除，并且将删除操作压入操作栈
     posts.fake_remove(index);
+    return;
 }
 
 void Client::addComment(Post* post, Comment &comment){
     post->addComment(comment,this);
+    return;
+}
+
+void Client::like(Post* post){//点赞帖子
+    post->receive_likes(this);
     return;
 }
 //重载输出

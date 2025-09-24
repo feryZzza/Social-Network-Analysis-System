@@ -15,6 +15,7 @@ public:
 
     void set_floor(int f){Floor = f;}
     int floor(){return Floor;}
+    Client* get_author(){return author;}
 
     // 重载输出
     friend std::ostream& operator<< (std::ostream& os, const Comment& c);
