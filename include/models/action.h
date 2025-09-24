@@ -24,6 +24,7 @@ class PostAction: public Action{//帖子操作
 public:
     PostAction() {}
     PostAction(bool is_add, Post*  post, int index = -1) : post(post), index(index) {this->is_add = is_add;}
+    ~PostAction();
     Post* post;//操作的帖子
     int index;//操作的帖子在用户帖子列表中的位置，添加操作时为-1
 };

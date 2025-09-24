@@ -1,4 +1,5 @@
 #include "models/clients.h"
+#include "models/Post.h"
 
 bool Client::undo(){//撤销上一次操作
     if(a_stack.empty()) return false;
@@ -14,6 +15,11 @@ void Client::addPost(Post p){
 }
 void Client::deletePost(int index){
     posts.fake_remove(index);
+}
+
+void Client::addComment(Post* post, Comment &comment){
+    post->addComment(comment,this);
+    return;
 }
 //重载输出
 std::ostream& operator<< (std::ostream& os,Client& c) {//重载输出
