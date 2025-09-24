@@ -11,18 +11,11 @@ class Client;
 class Post{
 public:
     Post() {}
-    //Post(std::string title, std::string author, std::string content) : title(title), author(author), content(content), likes(0), comments(0) {}
+    Post(std::string title, Client* author, std::string content) : title(title), author(author), content(content), likes(0), comments(0) {}
+    Post(std::string title, std::string content) : title(title), content(content), likes(0), comments(0) {}
+    void set_author(Client* a);
     //重载输出
-    friend std::ostream& operator<< (std::ostream& os,Post& p) {//重载输出
-        os << "Title: " << p.title << "\n";
-        os << "Author: " << p.author << "\n";
-        os << "Content: " << p.content << "\n";
-        os << "Likes: " << p.likes << "\n";
-        os << "Comments: " << p.comments << "\n";
-        os << "Comment List: " << p.comment_list << "\n";
-        //os << "Like Users: " << p.like_users << "\n";
-        return os;
-    }
+    friend std::ostream& operator<< (std::ostream& os,Post& p);
 private:
     std::string title;//帖子标题
     std::string author_name;//帖子作者

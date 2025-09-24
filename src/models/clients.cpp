@@ -9,6 +9,7 @@ bool Client::undo(){//撤销上一次操作
 }
 
 void Client::addPost(Post p){
+    p.set_author(this);
     posts.add(p);
 }
 void Client::deletePost(int index){
