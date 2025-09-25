@@ -1,0 +1,74 @@
+/* 基础暗色主题 */
+QWidget {
+  background-color: #1f2430;
+  color: #e6e9ef;
+  font-size: 14px;
+}
+
+QTabBar::tab {
+  background: #2b303b;
+  padding: 8px 14px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+QTabBar::tab:selected {
+  background: #39404a;
+  color: #ffffff;
+}
+QTabWidget::pane {
+  border: 1px solid #39404a;
+  top: -1px;
+}
+
+QToolBar {
+  background: #2b303b;
+  border-bottom: 1px solid #39404a;
+  spacing: 8px;
+}
+QToolButton {
+  background: transparent;
+  color: #e6e9ef;
+  padding: 6px 10px;
+}
+QToolButton:hover {
+  background: #39404a;
+  border-radius: 4px;
+}
+
+QHeaderView::section {
+  background: #2b303b;
+  color: #c9cdd4;
+  padding: 6px;
+  border: none;
+}
+
+QTableView {
+  gridline-color: transparent;
+  selection-background-color: #4f5b66;
+  selection-color: #ffffff;
+  alternate-background-color: #262b36;
+}
+
+QTreeView {
+  alternate-background-color: #262b36;
+}
+
+QLineEdit, QTextEdit {
+  background: #262b36;
+  border: 1px solid #39404a;
+  border-radius: 4px;
+  padding: 6px;
+  color: #e6e9ef;
+}
+
+QPushButton {
+  background: #39404a;
+  border: 1px solid #4f5b66;
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+QPushButton:hover {
+  background: #4f5b66;
+}
+
+

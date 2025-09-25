@@ -23,6 +23,7 @@ public:
     int likes_num(){return likes;}
     void set_idex(int i){idex = i;}
     int get_idex(){return idex;}
+    std::string get_content(){return content;}
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Post& p);
     //重载比较运算符
