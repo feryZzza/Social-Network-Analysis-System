@@ -1,4 +1,4 @@
-#include "post_item_delegate.h"
+#include "ui/delegates/post_item_delegate.h"
 
 #include <QPainter>
 #include <QApplication>

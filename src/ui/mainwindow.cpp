@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "ui/mainwindow.h"
 
 #include <QTabWidget>
 #include <QListView>
@@ -55,11 +55,11 @@ MainWindow::MainWindow(QWidget* parent)
     clientsView->setModel(clientsModel);
     tabs->addTab(clientsView, QStringLiteral("用户"));
 
-    // 帖子页：左右分栏（左：列表 右：详情）
     auto* postsPage = new QWidget(tabs);
     auto* postsLayout = new QVBoxLayout(postsPage);
     auto* splitter = new QSplitter(Qt::Horizontal, postsPage);
-    // 左侧：帖子表格
+
+    // 左侧帖子表格
     postsView = new QTableView(splitter);
     postsModel = new QStandardItemModel(this);
     postsModel->setHorizontalHeaderLabels({QStringLiteral("标题"), QStringLiteral("作者"), QStringLiteral("点赞"), QStringLiteral("评论")});
@@ -68,7 +68,8 @@ MainWindow::MainWindow(QWidget* parent)
     postsView->setWordWrap(true);
     postsView->verticalHeader()->setDefaultSectionSize(78);
     splitter->addWidget(postsView);
-    // 右侧：详情卡片
+
+    // 右侧详情卡片
     postDetail = new QWidget(splitter);
     auto* detailLayout = new QVBoxLayout(postDetail);
     lblPostTitle = new QLabel(postDetail);
@@ -95,14 +96,10 @@ MainWindow::MainWindow(QWidget* parent)
     postsPage->setLayout(postsLayout);
     tabs->addTab(postsPage, QStringLiteral("帖子"));
 
-    // 动态页已移除
-
     layout->addWidget(tabs);
     setCentralWidget(central);
     setWindowTitle(QStringLiteral("社交网络管理系统"));
     resize(960, 640);
-
-    // 示例数据改由外部模型提供
 
     // 工具栏与动作
     toolbar = addToolBar(QStringLiteral("操作"));
@@ -113,7 +110,6 @@ MainWindow::MainWindow(QWidget* parent)
     toolbar->addSeparator();
     actRefresh = toolbar->addAction(QStringLiteral("刷新"), this, &MainWindow::onRefresh);
 
-    // 视觉优化（白色基底）
     setStyleSheet("QWidget{background:#ffffff;color:#111827;} QTableView{alternate-background-color:#f9fafb;}");
     clientsView->setAlternatingRowColors(true);
     postsView->setAlternatingRowColors(true);
@@ -128,7 +124,6 @@ MainWindow::MainWindow(QWidget* parent)
     clientsView->verticalHeader()->setVisible(false);
     postsView->verticalHeader()->setVisible(false);
 
-    // 绑定选择变化刷新详情
     connect(postsView->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &MainWindow::onPostSelectionChanged);
     connect(btnLike, &QPushButton::clicked, this, &MainWindow::onLike);
@@ -210,7 +205,7 @@ void MainWindow::onRefresh() {
 }
 
 void MainWindow::updateSummary() {
-    // 汇总所有作者的帖子总数、被点赞总数、被评论总数
+
     if (!clientsProxy || !lblSummary) return;
     int totalPosts = 0;
     int totalLikes = 0;
@@ -219,7 +214,6 @@ void MainWindow::updateSummary() {
     for (auto* c : list) {
         if (!c) continue;
         totalPosts += c->posts.size();
-        // 遍历其帖子统计点赞与评论
         for (int i = 0; i < c->posts.size(); ++i) {
             Post& p = c->posts[i];
             totalLikes += p.likes_num();
@@ -245,9 +239,7 @@ void MainWindow::updatePostDetail() {
         .arg(p->likes_num())
         .arg(p->comments_num());
     lblPostMeta->setText(meta);
-    // 填充评论列表
     for (int i = 0; i < p->comment_list.size(); ++i) {
-        // 简单安全：尝试访问，LinkList 支持 operator[] 吗？若支持则可直接使用
         Comment& c = p->comment_list[i];
         QString line = QStringLiteral("%1：%2")
             .arg(c.get_author() ? QString::fromStdString(c.get_author()->Name()) : QStringLiteral("-"))

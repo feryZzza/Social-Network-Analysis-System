@@ -26,5 +26,3 @@ private:
 };
 
 #endif // POSTS_TABLE_MODEL_H
-
-

@@ -26,5 +26,3 @@ private:
 };
 
 #endif // CLIENTS_TABLE_MODEL_H
-
-

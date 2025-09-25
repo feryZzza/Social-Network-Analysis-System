@@ -1,4 +1,4 @@
-#include "clients_table_model.h"
+#include "ui/models/clients_table_model.h"
 
 #include <QString>
 

@@ -1,4 +1,4 @@
-#include "posts_table_model.h"
+#include "ui/models/posts_table_model.h"
 
 #include <QString>
 

@@ -12,5 +12,3 @@ public:
 };
 
 #endif // POST_ITEM_DELEGATE_H
-
-
