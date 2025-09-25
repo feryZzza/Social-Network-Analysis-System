@@ -6,6 +6,7 @@
 #include "data_structure/queue.h"
 #include "models/clients.h"
 #include "models/comment.h"
+using namespace std;
 
 class Client;
 class Comment;
@@ -22,7 +23,6 @@ public:
     int likes_num(){return likes;}
     void set_idex(int i){idex = i;}
     int get_idex(){return idex;}
-    void undo_check(Post* p);//彻底删除帖子前检查涉及到的操作栈，防止野指针
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Post& p);
     //重载比较运算符
@@ -32,6 +32,7 @@ public:
     bool operator>(const Post& other) const {return this->idex > other.idex;}
     bool operator>=(const Post& other) const {return this->idex >= other.idex;}
     Client* author; //作者指针
+    string get_title(){return title;}
     LinkList<Comment> comment_list; //评论列表
 private:
     int floor = 1;//评论楼层数，借鉴贴吧,每添加一个评论楼层数加一，不会因为删除评论而减少，楼主永远是1楼

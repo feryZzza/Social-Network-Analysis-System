@@ -2,6 +2,7 @@
 #include "data_structure/lin_list.h"
 #include "models/action.h"
 #include "models/comment.h"
+#include "models/message.h"
 
 void Post::set_author(Client* a){
     author = a;
@@ -15,6 +16,10 @@ void Post::addComment(Comment &c,Client* commenter){
         this->floor++;
         commenter->receive_comment(1);
     }
+
+    CommentMassege* m = new CommentMassege(&c);
+    m->init(commenter,author,this);
+    author->receive_messege(m);//发送评论消息
     return;
 }
 
@@ -43,18 +48,14 @@ void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点�
         LikeAction* action = new LikeAction();
         action->init(liker,1,this);//初始化操作
         liker->add_action(action);//将操作压入操作栈
+
+        LikeMassege* m = new LikeMassege();
+        m->init(liker,author,this);
+        author->receive_messege(m);//发送点赞消息
     }
     return;
 }
 
-void Post::undo_check(Post *p){
-    //彻底删除帖子前检查涉及到的操作栈，防止野指针
-    for(int i = 0; i < likes_list.size(); i++){
-        Client* a = likes_list[i];
-        
-    }
-    return;
-}
 //重载输出
 std::ostream& operator<< (std::ostream& os,Post& p) {//重载输出
     cout<<endl;

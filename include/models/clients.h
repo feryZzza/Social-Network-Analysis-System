@@ -8,9 +8,11 @@
 #include"data_structure/stack.h"
 #include"data_structure/queue.h"
 #include"models/action.h"
+#include "models/message.h"
 
 using namespace std;
 
+class massege;
 class Post;
 class Action;
 class Comment;
@@ -52,6 +54,12 @@ public:
 
     void undo_safe_update(Post* p);//每次彻底删除帖子时调用，删去彻底释放的指针，若有则将post指针置为空,防止野指针
 
+    void receive_messege(massege* m){//接收消息
+        m_q.enqueue(m);
+    }
+
+    void read_messege();
+
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Client& c);
     //重载==
@@ -66,6 +74,7 @@ private:
     string id;//用户ID
     string password;//用户密码
     Fake_Stack<Action*> a_stack;//用户操作栈,用于实现撤销功能
+    LinkQueue<massege*> m_q;//消息队列
     int likes_received = 0;
     int comments_received = 0;//被评论数
 };

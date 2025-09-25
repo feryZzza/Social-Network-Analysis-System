@@ -8,6 +8,9 @@
 #include "data_structure/queue.h"
 #include "models/Post.h"
 #include "models/clients.h"
+#include "models/comment.h"
+#include "models/action.h"
+#include "models/message.h"
 
 using namespace std;
 
@@ -34,18 +37,6 @@ int main() {
     clients[1].addComment(&clients[0].posts[0],comment1);
     clients[1].addComment(&clients[0].posts[0],comment1);
     clients[1].deleteComment(&clients[0].posts[0],2);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
-    clients[1].addComment(&clients[0].posts[0],comment1);
 
     Comment comment2(&clients[0],"欧狗滚出三角洲！",2);
     clients[0].addComment(&clients[0].posts[0],comment2);
@@ -56,6 +47,13 @@ int main() {
 
 
     cout<<clients[0].posts[0];
+    clients[1].undo();
+    clients[1].undo();
+
+
+
+    cout<<clients[0].posts[0];
+    clients[0].read_messege();
 
 
 

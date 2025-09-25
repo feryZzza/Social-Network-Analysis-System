@@ -10,6 +10,7 @@ bool Client::undo(){//撤销上一次操作
     }
     Action* a = a_stack.pop();
     a->undo();
+    delete a;//删除操作
     cout<<"操作栈大小"<<a_stack.size()<<endl;
     return true;
 }
@@ -146,6 +147,19 @@ void Client::undo_safe_update(Post* p){//每次彻底删除帖子时调用，删
             safe_posts.remove(i);//更新安全列表
             break;
         }
+    }
+    return;
+}
+
+void Client::read_messege(){
+    if(m_q.empty()){
+        cout<<"没有新消息"<<endl;
+        return;
+    }
+    while(!m_q.empty()){
+        massege* m = m_q.dequeue();
+        m->show();
+        delete m;//删除消息
     }
     return;
 }

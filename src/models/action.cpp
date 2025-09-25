@@ -24,7 +24,6 @@ PostAction::~PostAction(){
     }
 }
 
-
 bool PostAction::undo() {//主动从栈中弹出发帖操作并撤销
     if(!check()){
         cout<<"该操作涉及的帖子已被删除，无法撤销"<<endl;
@@ -47,8 +46,6 @@ bool PostAction::undo() {//主动从栈中弹出发帖操作并撤销
         return true;
     }
 }
-
-
 
 bool LikeAction::undo() {//主动从栈中弹出点赞操作并撤销
     //点赞变为取消点赞，取消点赞变为点赞，只需调用receive_likes函数即可

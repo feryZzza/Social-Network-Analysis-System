@@ -162,6 +162,7 @@ public:
     int size() override{return deque.size();}
     void clear() override{deque.clear();}
     bool full() override{return deque.size() >= maxSize;}
+    
 
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Fake_Stack<T>& stack) {//重载输出

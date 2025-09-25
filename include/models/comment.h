@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include "models/clients.h"
+using namespace std;
 
 class Client;
 
@@ -16,6 +17,7 @@ public:
     void set_floor(int f){Floor = f;}
     int floor(){return Floor;}
     Client* get_author(){return author;}
+    string get_content(){return content;}
 
     // 重载输出
     friend std::ostream& operator<< (std::ostream& os, const Comment& c);
@@ -25,8 +27,6 @@ public:
     bool operator<(const Comment& other) const {return this->Floor < other.Floor;}
     bool operator>(const Comment& other) const {return this->Floor > other.Floor;}
     bool operator>=(const Comment& other) const {return this->Floor >= other.Floor;}
-
-
 
 private:
     Client* author; // 评论作者指针

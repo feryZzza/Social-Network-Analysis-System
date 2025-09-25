@@ -173,7 +173,7 @@ public:
         int newFront = (data.Front - 1 + data.maxSize) % data.maxSize;
         data.data[newFront] = x;
         data.Front = newFront;
-        if(data.Front == data.Rear) data.tag = 1; //更新tag
+        data.tag = 1; //更新tag
     }
     T dequeue() override{//从队头出队
         return data.dequeue();
@@ -183,7 +183,7 @@ public:
         int newRear = (data.Rear - 1 + data.maxSize) % data.maxSize;
         T x = data.data[newRear];
         data.Rear = newRear;
-        if(data.Front == data.Rear) data.tag = 0; //更新tag
+        data.tag = 0; //更新tag
         return x;
     }
     T& front() override{//取队头元素
