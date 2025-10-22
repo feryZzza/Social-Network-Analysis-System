@@ -1,4 +1,4 @@
-#include "models/huffman.h"
+#include "data_structure/huffman.h"
 #include <iostream>
 #include <vector>
 
