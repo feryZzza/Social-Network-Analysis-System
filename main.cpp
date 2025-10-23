@@ -98,7 +98,21 @@ void module_3_demonstration(SeqList<Client>& clients) {
     cout << "用于分析的帖子总内容: \n\"" << all_post_content << "\"\n\n";
 
     map<string, int> frequencies = countFrequency(all_post_content);
-
+cout << "--- 词频统计分析 ---\n";
+    cout << "分析完毕，共统计到 " << frequencies.size() << " 个独立字符。\n\n";
+    
+    int total_chars = 0; // 用于计算总字符数
+    
+    // 遍历 map 并打印每个字符的频率（权重）
+    // (这里使用了 C++17 的结构化绑定，你的编译器支持)
+    for (auto const& [key, val] : frequencies) {
+        // 使用 \t (制表符) 来尝试对齐，使输出更直观
+        cout << "字符: '" << key << "' \t 出现次数 (权重): " << val << endl;
+        total_chars += val;
+    }
+    
+    cout << "\n总字符数 (所有权重之和): " << total_chars << endl;
+    cout << "------------------------\n\n";
     // 2. 哈夫曼树构建与编码
     HuffmanTree huffman_tree(frequencies);
     huffman_tree.generateCodes();
@@ -106,7 +120,7 @@ void module_3_demonstration(SeqList<Client>& clients) {
     
     // 3. 压缩与解压模拟
     cout << "\n--- 压缩与解压模拟 ---\n";
-    string original_text = "我真的出心了";
+    string original_text = "出心了";
     cout << "原始文本: " << original_text << endl;
     
     string compressed_code = huffman_tree.compress(original_text);
