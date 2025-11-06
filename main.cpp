@@ -12,6 +12,7 @@
 #include "models/action.h"
 #include "models/message.h"
 #include "models/social_graph.h"
+#include "data_structure/huffman.h"
 
 using namespace std;
 
@@ -129,7 +130,67 @@ int main() {
     
     //cout << cl1;
 
-    module_3_demonstration(clients);
+    //module_3_demonstration(clients);
     
     return 0;
+}
+
+// 模块三：信息压缩与编码模块 功能演示函数
+void module_3_demonstration(SeqList<Client>& clients) {
+    cout << "\n\n======================================================\n";
+    cout << "      模块三：哈夫曼编码功能演示\n";
+    cout << "======================================================\n";
+
+    // 1. 词频统计：分析所有用户发布的历史帖子内容
+    string all_post_content = "";
+    for (int i = 0; i < clients.size(); ++i) {
+        for (int j = 0; j < clients[i].posts.size(); ++j) {
+             all_post_content += clients[i].posts[j].get_title();
+        }
+    }
+    
+    if (all_post_content.empty()) {
+        cout << "没有可用于分析的帖子内容。" << endl;
+        return;
+    }
+
+    cout << "用于分析的帖子总内容: \n\"" << all_post_content << "\"\n\n";
+
+    map<string, int> frequencies = countFrequency(all_post_content);
+cout << "--- 词频统计分析 ---\n";
+    cout << "分析完毕，共统计到 " << frequencies.size() << " 个独立字符。\n\n";
+    
+    int total_chars = 0; // 用于计算总字符数
+    
+    // 遍历 map 并打印每个字符的频率（权重）
+    // (这里使用了 C++17 的结构化绑定，你的编译器支持)
+    for (auto const& [key, val] : frequencies) {
+        // 使用 \t (制表符) 来尝试对齐，使输出更直观
+        cout << "字符: '" << key << "' \t 出现次数 (权重): " << val << endl;
+        total_chars += val;
+    }
+    
+    cout << "\n总字符数 (所有权重之和): " << total_chars << endl;
+    cout << "------------------------\n\n";
+    // 2. 哈夫曼树构建与编码
+    HuffmanTree huffman_tree(frequencies);
+    huffman_tree.generateCodes();
+    huffman_tree.printCodes();
+    
+    // 3. 压缩与解压模拟
+    cout << "\n--- 压缩与解压模拟 ---\n";
+    string original_text = "出心了";
+    cout << "原始文本: " << original_text << endl;
+    
+    string compressed_code = huffman_tree.compress(original_text);
+    cout << "压缩后的编码: " << compressed_code << endl;
+
+    string decompressed_text = huffman_tree.decompress(compressed_code);
+    cout << "解压后的文本: " << decompressed_text << endl;
+    
+    // 4. 树遍历与效率分析
+    cout << "\n--- 效率分析 ---\n";
+    double wpl = huffman_tree.getWPL();
+    cout << "哈夫曼树的带权路径长度 (WPL) 为: " << wpl << endl;
+    cout << "======================================================\n";
 }
