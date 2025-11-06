@@ -15,7 +15,10 @@
 
 using namespace std;
 
+void module_3_demonstration(SeqList<Client>& clients); 
+
 int main() {
+
     SeqList<Client> clients(100);//100个用户的顺序表
     SeqList<Client*> clients_ptr(100);//存储用户指针用于排序等操作
 
@@ -34,7 +37,7 @@ int main() {
 
     clients[0].addPost(post1);
 
-    //clients[1].addPost(post2);
+    clients[1].addPost(post2);
 
     Comment comment1(&clients[1],"我懂，因为我真出了");
     
@@ -126,5 +129,7 @@ int main() {
     
     //cout << cl1;
 
+    module_3_demonstration(clients);
+    
     return 0;
 }
