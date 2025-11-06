@@ -68,9 +68,8 @@ int main() {
     graph.addEdge(0, 2); // 额外关系，方便形成更短路径
 
     // 输出每个用户的度（好友数）
-    auto degrees = graph.degrees();
     for (int i = 0; i < clients.size(); ++i) {
-        cout << clients[i].Name() << " 的好友数: " << degrees[i] << endl;
+        cout << clients[i].Name() << " 的好友数: " << graph.degree(i) << endl;
     }
 
     // 查找好友最多的用户
@@ -97,13 +96,13 @@ int main() {
             cout << "无法找到用户: " << from << " 或 " << to << endl;
             return;
         }
-        auto path = graph.shortestPath(start, target);
-        if (path.empty()) {
+        LinkList<int> path;
+        if (!graph.shortestPath(start, target, path)) {
             cout << from << " 和 " << to << " 之间暂无好友链路" << endl;
             return;
         }
         cout << from << " 到 " << to << " 的最短好友链路: ";
-        for (std::size_t i = 0; i < path.size(); ++i) {
+        for (int i = 0; i < path.size(); ++i) {
             cout << clients[path[i]].Name();
             if (i + 1 < path.size()) {
                 cout << " -> ";

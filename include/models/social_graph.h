@@ -1,41 +1,37 @@
 #ifndef SOCIAL_GRAPH_H
 #define SOCIAL_GRAPH_H
 
-#include <vector>
+#include <cstddef>
+#include "data_structure/lin_list.h"
 
 class SocialGraph {
 public:
-
-    SocialGraph() = default;
-    // 构造函数，仅有顶点，无边情况
+    // 构造空图
+    SocialGraph();
+    // 以顶点数量初始化图，初始无边
     SocialGraph(std::size_t vertexCount);
+    ~SocialGraph();
+    SocialGraph(const SocialGraph&) = delete;
+    SocialGraph& operator=(const SocialGraph&) = delete;
 
-    // 调整顶点数量
+    // 调整顶点数量并清空边
     void resize(std::size_t vertexCount);
-
-    // 在顶点 u 与 v 之间添加无向边，即好友关系
+    // 添加无向边（好友关系）
     void addEdge(int u, int v);
-
-    // 查询顶点数量
+    // 获取顶点数量
     std::size_t vertexCount() const;
-
-    // 查询指定顶点的度，即好友数
+    // 获取指定顶点的度
     int degree(int vertex) const;
-
-    // 查询每个顶点的度数数组
-   std::vector<int> degrees() const;
-
-    // 找到度最大的顶点索引
-   int indexWithMaxDegree() const;
-
-    // 使用BFS计算最短路径顶点序列
-    std::vector<int> shortestPath(int start, int target) const;
+    // 返回度数最大的顶点索引
+    int indexWithMaxDegree() const;
+    // BFS 计算最短路径，结果写入 path，成功返回 true
+    bool shortestPath(int start, int target, LinkList<int>& path) const;
 
 private:
-    // 检查顶点索引是否有效
     bool validVertex(int v) const;
 
-    std::vector<std::vector<int>> userForm;
+    SeqList<LinkList<int>>* userForm;
+    std::size_t vertex_count_;
 };
 
 #endif

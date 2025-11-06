@@ -1,76 +1,106 @@
 #include "models/social_graph.h"
 
-#include <algorithm>
 #include "data_structure/queue.h"
 
-SocialGraph::SocialGraph(std::size_t vertexCount) : userForm(vertexCount) {}
+SocialGraph::SocialGraph() : userForm(nullptr), vertex_count_(0) {}
+
+SocialGraph::SocialGraph(std::size_t vertexCount) : userForm(nullptr), vertex_count_(0) {
+    resize(vertexCount);
+}
+
+SocialGraph::~SocialGraph() {
+    delete userForm;
+    userForm = nullptr;
+}
 
 void SocialGraph::resize(std::size_t vertexCount) {
-    userForm.assign(vertexCount, {});
+    delete userForm;
+    userForm = nullptr;
+    vertex_count_ = vertexCount;
+    if (vertexCount == 0) {
+        return;
+    }
+    userForm = new SeqList<LinkList<int>>(static_cast<int>(vertexCount), 
+                                          static_cast<int>(vertexCount));
 }
 
 void SocialGraph::addEdge(int u, int v) {
-    if (!validVertex(u) || !validVertex(v)) {
+    if (!validVertex(u) || !validVertex(v) || userForm == nullptr) {
         return;
     }
-    // 避免重复边
-    auto &neighborsU = userForm[u];
-    if (std::find(neighborsU.begin(), neighborsU.end(), v) == neighborsU.end()) {
-        neighborsU.push_back(v);
+
+    LinkList<int>& neighborsU = (*userForm)[u];
+    bool exists = false;
+    for (int i = 0; i < neighborsU.size(); ++i) {
+        if (neighborsU[i] == v) {
+            exists = true;
+            break;
+        }
     }
-    auto &neighborsV = userForm[v];
-    if (std::find(neighborsV.begin(), neighborsV.end(), u) == neighborsV.end()) {
-        neighborsV.push_back(u);
+    if (!exists) {
+        neighborsU.add(v);
+    }
+
+    LinkList<int>& neighborsV = (*userForm)[v];
+    exists = false;
+    for (int i = 0; i < neighborsV.size(); ++i) {
+        if (neighborsV[i] == u) {
+            exists = true;
+            break;
+        }
+    }
+    if (!exists) {
+        neighborsV.add(u);
     }
 }
 
 std::size_t SocialGraph::vertexCount() const {
-    return userForm.size();
+    return vertex_count_;
 }
 
 int SocialGraph::degree(int vertex) const {
-    if (!validVertex(vertex)) {
+    if (!validVertex(vertex) || userForm == nullptr) {
         return 0;
     }
-    return static_cast<int>(userForm[vertex].size());
-}
-
-std::vector<int> SocialGraph::degrees() const {
-    std::vector<int> result;
-    result.reserve(userForm.size());
-    for (const auto &neighbors : userForm) {
-        result.push_back(static_cast<int>(neighbors.size()));
-    }
-    return result;
+    return (*userForm)[vertex].size();
 }
 
 int SocialGraph::indexWithMaxDegree() const {
+    if (userForm == nullptr || vertex_count_ == 0) {
+        return -1;
+    }
+
     int maxIndex = -1;
     int maxDegree = -1;
-    for (std::size_t i = 0; i < userForm.size(); ++i) {
-        const int currentDegree = static_cast<int>(userForm[i].size());
+    for (int i = 0; i < static_cast<int>(vertex_count_); ++i) {
+        int currentDegree = (*userForm)[i].size();
         if (currentDegree > maxDegree) {
             maxDegree = currentDegree;
-            maxIndex = static_cast<int>(i);
+            maxIndex = i;
         }
     }
     return maxIndex;
 }
 
-bool SocialGraph::validVertex(int v) const {
-    return v >= 0 && static_cast<std::size_t>(v) < userForm.size();
-}
-
-std::vector<int> SocialGraph::shortestPath(int start, int target) const {
-    if (!validVertex(start) || !validVertex(target)) {
-        return {};
+bool SocialGraph::shortestPath(int start, int target, LinkList<int>& path) const {
+    if (!validVertex(start) || !validVertex(target) || userForm == nullptr) {
+        return false;
     }
 
-    std::vector<int> parent(userForm.size(), -1);
-    std::vector<bool> visited(userForm.size(), false);
-    LinkQueue<int> q;
+    while (!path.empty()) {
+        path.remove(0);
+    }
 
-    visited[start] = true;
+    const int count = static_cast<int>(vertex_count_);
+    SeqList<int> father(count, count);
+    SeqList<bool> visited(count, count);
+    for (int i = 0; i < count; ++i) {
+        father.setx(i, -1);
+        visited.setx(i, false);
+    }
+
+    LinkQueue<int> q;
+    visited.setx(start, true);
     q.enqueue(start);
 
     while (!q.empty()) {
@@ -78,24 +108,39 @@ std::vector<int> SocialGraph::shortestPath(int start, int target) const {
         if (current == target) {
             break;
         }
-        for (int neighbor : userForm[current]) {
-            if (!visited[neighbor]) {
-                visited[neighbor] = true;
-                parent[neighbor] = current;
+        LinkList<int>& neighbors = (*userForm)[current];
+        for (int i = 0; i < neighbors.size(); ++i) {
+            int neighbor = neighbors[i];
+            bool visitedFlag;
+            visited.getx(neighbor, visitedFlag);
+            if (!visitedFlag) {
+                visited.setx(neighbor, true);
+                father.setx(neighbor, current);
                 q.enqueue(neighbor);
             }
         }
     }
 
-    if (!visited[target]) {
-        return {};
+    bool targetVisited;
+    visited.getx(target, targetVisited);
+    if (!targetVisited) {
+        return false;
     }
 
-    std::vector<int> path;
-    for (int v = target; v != -1; v = parent[v]) {
-        path.push_back(v);
+    SeqList<int> reversed(count);
+    for (int v = target; v != -1; ) {
+        reversed.add(v);
+        int fatherValue;
+        father.getx(v, fatherValue);
+        v = fatherValue;
     }
-    std::reverse(path.begin(), path.end());
-    return path;
+
+    for (int i = reversed.size() - 1; i >= 0; --i) {
+        path.add(reversed[i]);
+    }
+    return true;
 }
 
+bool SocialGraph::validVertex(int v) const {
+    return v >= 0 && static_cast<std::size_t>(v) < vertex_count_;
+}
