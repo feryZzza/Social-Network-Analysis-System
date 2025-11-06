@@ -19,7 +19,7 @@ class Action{//用来表示操作，用于实现模块二撤销功能
 public:
     Action() {}
     virtual ~Action() {}
-    virtual bool undo(){cout<<"action基类"<<endl;};//主动从栈中弹出操作并撤销
+    virtual bool undo(){cout<<"action基类"<<endl;return false;};//主动从栈中弹出操作并撤销
     bool check();
     bool is_add = 0;//是添加操作还是删除操作
     void init(Client* client,bool add,Post* p);

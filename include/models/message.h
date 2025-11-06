@@ -19,7 +19,7 @@ class massege{//用来表示消息
 public:
     massege() {}
     virtual ~massege() {}
-    virtual bool show(){cout<<"massege基类"<<endl;};//显示消息
+    virtual bool show(){cout<<"massege基类"<<endl;return false;};//显示消息
     void init(Client* sender,Client* receiver,Post* p = nullptr){
         this->sender = sender;
         this->receiver = receiver;
