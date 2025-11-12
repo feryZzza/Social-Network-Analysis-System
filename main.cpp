@@ -75,6 +75,7 @@ int main() {
     // 输出每个用户的度（好友数）
     for (int i = 0; i < clients.size(); ++i) {
         cout << clients[i].Name() << " 的好友数: " << graph.degree(i) << endl;
+        clients.friendCount= graph.degree(i);
     }
 
     // 查找好友最多的用户
