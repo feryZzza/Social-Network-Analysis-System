@@ -9,6 +9,10 @@
 #include "models/Post.h"
 #include "models/comment.h"
 
+//自定义函数说明
+template <typename T>
+void mySwap(T& a, T& b)；
+int myMin(int a, int b)；
 
 // 比较函数前置声明
 bool compareHaoyou(const client& a, const client& b);
