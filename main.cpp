@@ -1,7 +1,5 @@
 #include <ios>
 #include <iostream>
-#include <vector>
-#include <algorithm>
 #include <iomanip>
 #include "data_structure/lin_list.h"
 #include "data_structure/stack.h"
@@ -15,6 +13,41 @@
 #include "data_structure/huffman.h"
 
 using namespace std;
+
+int findClientIndex(SeqList<Client>& clients, const string& nickname) {
+    for (int i = 0; i < clients.size(); ++i) {
+        if (clients[i].Name() == nickname) {
+            return i;
+        }
+    }
+    return -1; 
+}
+
+void showRelationshipChain(SocialGraph& graph, SeqList<Client>& clients, const string& from, const string& to) {
+    
+    int start = findClientIndex(clients, from); 
+    int target = findClientIndex(clients, to);
+
+    if (start == -1 || target == -1) {
+        cout << "无法找到用户: " << from << " 或 " << to << endl;
+        return;
+    }
+    
+    LinkList<int> path;
+    if (!graph.shortestPath(start, target, path)) {
+        cout << from << " 和 " << to << " 之间暂无好友链路" << endl;
+        return;
+    }
+    cout << from << " 到 " << to << " 的最短好友链路: ";
+    for (int i = 0; i < path.size(); ++i) {
+        cout << clients[path[i]].Name();
+        if (i + 1 < path.size()) {
+            cout << " -> ";
+        }
+    }
+    cout << endl;
+}
+
 
 void module_3_demonstration(SeqList<Client>& clients); 
 
@@ -35,6 +68,7 @@ int main() {
     clients.add(Client("贪吃的猪", "2022211001001309", "123456"));
     clients_ptr.add(&clients[3]);
 
+
     Post post1("家人门谁懂啊，普坝出心了", "骗你的");
     Post post2("三角洲3✖3打累了","谁陪我农两把");
 
@@ -44,6 +78,7 @@ int main() {
 
     Comment comment1(&clients[1],"我懂，因为我真出了");
     
+
     clients[1].addComment(&clients[0].posts[0],comment1);
     clients[1].addComment(&clients[0].posts[0],comment1);
     clients[1].deleteComment(&clients[0].posts[0],2);
@@ -54,10 +89,14 @@ int main() {
     
     clients[1].like(&clients[0].posts[0]);
 
+
+
     cout<<clients[0].posts[0];
 
     clients[1].undo();
     clients[1].undo();
+
+
 
     cout<<clients[0].posts[0];
     
@@ -78,41 +117,8 @@ int main() {
              << "，好友数: " << graph.degree(maxIndex) << endl;
     }
 
-    auto findClientIndex = [&](const string& nickname) -> int {
-        for (int i = 0; i < clients.size(); ++i) {
-            if (clients[i].Name() == nickname) {
-                return i;
-            }
-        }
-        return -1; 
-    };
-
-    auto showRelationshipChain = [&](const string& from, const string& to) {
-        int start = findClientIndex(from);
-        int target = findClientIndex(to);
-        if (start == -1 || target == -1) {
-            cout << "无法找到用户: " << from << " 或 " << to << endl;
-            return;
-        }
-        LinkList<int> path;
-        if (!graph.shortestPath(start, target, path)) {
-            cout << from << " 和 " << to << " 之间暂无好友链路" << endl;
-            return;
-        }
-        cout << from << " 到 " << to << " 的最短好友链路: ";
-        for (int i = 0; i < path.size(); ++i) {
-            cout << clients[path[i]].Name();
-            if (i + 1 < path.size()) {
-                cout << " -> ";
-            }
-        }
-        cout << endl;
-    };
-
-    showRelationshipChain("自信的空空", "贪吃的猪");
-    showRelationshipChain("我不想上学", "自信的空空");
-    
-    
+    showRelationshipChain(graph, clients, "自信的空空", "贪吃的猪");
+    showRelationshipChain(graph, clients, "我不想上学", "自信的空空");
     
     return 0;
 }
@@ -151,12 +157,10 @@ void module_3_demonstration(SeqList<Client>& clients) {
     
     cout << "\n总字符数 (所有权重之和): " << total_chars << endl;
     cout << "------------------------\n\n";
-
     
     HuffmanTree huffman_tree(frequencies);
     huffman_tree.generateCodes();
     huffman_tree.printCodes();
-    
     
     cout << "\n--- 压缩与解压模拟 ---\n";
     string original_text = "出心了";
@@ -168,10 +172,8 @@ void module_3_demonstration(SeqList<Client>& clients) {
     string decompressed_text = huffman_tree.decompress(compressed_code);
     cout << "解压后的文本: " << decompressed_text << endl;
     
-    
     cout << "\n--- 效率分析 ---\n";
     double wpl = huffman_tree.getWPL();
     cout << "哈夫曼树的带权路径长度 (WPL) 为: " << wpl << endl;
     cout << "======================================================\n";
-    
 }
