@@ -95,15 +95,31 @@ string HuffmanTree::compress(const string& text) {
 }
 
 
-// 解压
+// 解压 (包含健壮性纠正)
 string HuffmanTree::decompress(const string& compressedText) {
     string decompressedText = "";
     auto currentNode = root;
+
+    // 健壮性检查：如果哈夫曼树为空
+    if (!currentNode) {
+        return "";
+    }
+
     for (char bit : compressedText) {
         if (bit == '0') {
             currentNode = currentNode->left;
-        } else {
+        } else if (bit == '1') { // 明确只处理 '0' 和 '1'
             currentNode = currentNode->right;
+        } else {
+            // 遇到无效字符，说明编码已损坏
+            std::cerr << "Error: Invalid character in compressed stream: " << bit << std::endl;
+            return ""; // 返回空字符串或抛出异常
+        }
+
+        // 健壮性检查：如果编码导致遍历到空指针（说明编码序列错误）
+        if (!currentNode) {
+            std::cerr << "Error: Invalid compressed data sequence." << std::endl;
+            return ""; // 返回空字符串或抛出异常
         }
 
         // 到达叶子节点
@@ -112,8 +128,18 @@ string HuffmanTree::decompress(const string& compressedText) {
             currentNode = root; // 重置回根节点
         }
     }
+
+    // 【关键纠正】
+    // 循环结束后，必须检查 currentNode 是否回到了根节点。
+    // 如果没有，说明最后的比特序列是不完整的。
+    if (currentNode != root) {
+        std::cerr << "Error: Compressed data is incomplete or corrupt." << std::endl;
+        return ""; // 返回空字符串，表示解压失败
+    }
+
     return decompressedText;
 }
+
 
 // 递归计算WPL
 void HuffmanTree::calculateWPLRecursive(const shared_ptr<HuffmanNode>& node, int depth, double& wpl) {

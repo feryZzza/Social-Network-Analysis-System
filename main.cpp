@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include <unordered_map> // 模块5：为实现高效查找（哈希表）而添加
 #include "data_structure/lin_list.h"
 #include "data_structure/stack.h"
 #include "data_structure/queue.h"
@@ -23,14 +24,27 @@ int main() {
     SeqList<Client> clients(100);//100个用户的顺序表
     SeqList<Client*> clients_ptr(100);//存储用户指针用于排序等操作
 
+    // 模块5：定义哈希表索引，用于按名称高效查询用户
+    std::unordered_map<string, int> client_index_by_name;
+
+    // 添加用户数据 (模块1)
+    // 同时也填充模块5的哈希表
     clients.add(Client("自信的空空", "2022211001001306", "123456"));
     clients_ptr.add(&clients[0]);
+    client_index_by_name[clients[0].Name()] = 0; // 填充索引
+
     clients.add(Client("我不想上学", "2022211001001307", "123456"));
     clients_ptr.add(&clients[1]);
+    client_index_by_name[clients[1].Name()] = 1; // 填充索引
+
     clients.add(Client("一只死肥宅", "2022211001001308", "123456"));
     clients_ptr.add(&clients[2]);
+    client_index_by_name[clients[2].Name()] = 2; // 填充索引
+
     clients.add(Client("贪吃的猪", "2022211001001309", "123456"));
     clients_ptr.add(&clients[3]);
+    client_index_by_name[clients[3].Name()] = 3; // 填充索引
+
 
     //给用户添加帖子
     Post post1("家人门谁懂啊，普坝出心了", "骗你的");
@@ -56,14 +70,19 @@ int main() {
 
 
     cout<<clients[0].posts[0];
+
+    // 模块2.1：操作回溯 (栈) 功能演示
     clients[1].undo();
     clients[1].undo();
 
 
 
     cout<<clients[0].posts[0];
+    
+    // 模块2.2：消息通知 (队列) 功能演示
     clients[0].read_messege();
 
+    // 模块4：社交关系图分析
     // 构建用户关系图：节点是用户，边是好友/关注关系
     SocialGraph graph(static_cast<std::size_t>(clients.size()));
     graph.addEdge(0, 1); // 自信的空空 ↔ 我不想上学
@@ -71,6 +90,7 @@ int main() {
     graph.addEdge(2, 3); // 一只死肥宅 ↔ 贪吃的猪
     graph.addEdge(0, 2); // 额外关系，方便形成更短路径
 
+    // 模块 4.1：关键人物发现
     // 输出每个用户的度（好友数）
     for (int i = 0; i < clients.size(); ++i) {
         cout << clients[i].Name() << " 的好友数: " << graph.degree(i) << endl;
@@ -83,16 +103,17 @@ int main() {
              << "，好友数: " << graph.degree(maxIndex) << endl;
     }
 
-    // BFS查询任意两位用户之间的最短关系链
+    // 模块 5：高效查询 (哈希表 O(1) 实现)
+    // (替代了原有的 O(N) 顺序查找)
     auto findClientIndex = [&](const string& nickname) -> int {
-        for (int i = 0; i < clients.size(); ++i) {
-            if (clients[i].Name() == nickname) {
-                return i;
-            }
+        auto it = client_index_by_name.find(nickname);
+        if (it != client_index_by_name.end()) {
+            return it->second; // 找到了，返回存储的索引
         }
-        return -1;
+        return -1; // 未找到
     };
 
+    // 模块 4.2：关系链查询 (依赖模块5的高效查找)
     auto showRelationshipChain = [&](const string& from, const string& to) {
         int start = findClientIndex(from);
         int target = findClientIndex(to);
@@ -130,7 +151,8 @@ int main() {
     
     //cout << cl1;
 
-    //module_3_demonstration(clients);
+    // 模块3：哈夫曼编码功能演示 (取消注释以运行)
+    // module_3_demonstration(clients);
     
     return 0;
 }
