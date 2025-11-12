@@ -78,5 +78,6 @@ private:
     LinkQueue<massege*> m_q;//消息队列
     int likes_received = 0;
     int comments_received = 0;//被评论数
+    int friendCount=0;//好友数
 };
 #endif
