@@ -195,4 +195,10 @@ cout << "--- 词频统计分析 ---\n";
     double wpl = huffman_tree.getWPL();
     cout << "哈夫曼树的带权路径长度 (WPL) 为: " << wpl << endl;
     cout << "======================================================\n";
+
+
+
+    //模块六
+    haoyoushu(clients);    // 用户按好友数排序
+    dianzanshu(clients);   // 帖子按点赞数排序
 }
