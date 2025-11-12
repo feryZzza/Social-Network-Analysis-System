@@ -13,6 +13,7 @@
 #include "models/message.h"
 #include "models/social_graph.h"
 #include "data_structure/huffman.h"
+#include "models/sort.h"
 
 using namespace std;
 
