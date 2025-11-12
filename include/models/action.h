@@ -8,6 +8,7 @@
 #include "models/clients.h"
 #include "models/Post.h"
 #include "models/comment.h"
+#include "manager/undo_manager.h"
 
 using namespace std;
 
@@ -19,16 +20,20 @@ class Action{//用来表示操作，用于实现模块二撤销功能
 public:
     Action() {}
     virtual ~Action() {}
-    virtual bool undo(){cout<<"action基类"<<endl;return false;};//主动从栈中弹出操作并撤销
-    bool check();
-    bool is_add = 0;//是添加操作还是删除操作
+    virtual bool undo(){};//主动从栈中弹出操作并撤销
+
+    inline bool check(){return post != nullptr;}//检查操作涉及的帖子是否被删除，防止野指针
     void init(Client* client,bool add,Post* p);
+    void invalidate(){post = nullptr;}//使操作无效化，防止野指针
+
+    bool is_add = 0;//是添加操作还是删除操作
     bool used = 0;//操作是否已经被撤销过
+    int index = -1;//操作涉及帖子的位置
     
     Client* client = nullptr;//操作的用户
-    Client* poster = nullptr;//操作涉及的帖子的作者
-    int index = -1;//操作涉及帖子的位置
     Post* post = nullptr;//操作涉及的帖子
+private:
+
 };
 
 class PostAction: public Action{//发帖操作

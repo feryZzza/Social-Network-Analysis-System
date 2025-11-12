@@ -38,10 +38,11 @@ public:
 
     string Name(){return name;}//返回昵称
 
-    void receive_comment(bool add){//被评论数加一或减一
+    inline void receive_comment(bool add){//被评论数加一或减一
         if(add) comments_received++;
         else comments_received--;
     }
+    
     Action* add_action(Action* a){return a_stack.push_and_get(a);}//添加操作到操作假栈
 
     void like(Post* post,bool undo=false);//点赞操作，参考了朋友圈的点赞功能，重复点赞变为取消点赞
