@@ -58,6 +58,8 @@ public:
 
     void read_messege();
 
+    string ID(){return id;}//返回用户ID
+
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Client& c);
     //重载==
