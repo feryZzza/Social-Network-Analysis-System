@@ -1,5 +1,6 @@
 #include "models/Post.h"
 #include "data_structure/lin_list.h"
+#include "manager/undo_manager.h"
 #include "models/action.h"
 #include "models/comment.h"
 #include "models/message.h"
@@ -31,6 +32,7 @@ void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点�
             if(undo) return;//撤销操作不添加操作到栈中
             LikeAction* action = new LikeAction();
             action->init(liker,0,this);//初始化操作
+            UndoManager::instance().register_action(this, action);//注册操作与帖子的引用关系
             if(liker->a_stack_full()){
                 Action* temp = liker->add_action(action);//将操作压入操作栈
                 delete temp;//删除栈底操作
@@ -47,6 +49,7 @@ void Post::receive_likes(Client* liker,bool undo){//重复点赞变为取消点�
         if(undo) return;//撤销操作不添加操作到栈中
         LikeAction* action = new LikeAction();
         action->init(liker,1,this);//初始化操作
+        UndoManager::instance().register_action(this, action);//注册操作与帖子的引用关系
         liker->add_action(action);//将操作压入操作栈
 
         LikeMassege* m = new LikeMassege();

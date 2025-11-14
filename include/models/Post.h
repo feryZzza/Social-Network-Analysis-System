@@ -6,6 +6,7 @@
 #include "data_structure/queue.h"
 #include "models/clients.h"
 #include "models/comment.h"
+#include "manager/undo_manager.h"
 using namespace std;
 
 class Client;

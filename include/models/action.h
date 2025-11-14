@@ -20,15 +20,17 @@ class Action{//用来表示操作，用于实现模块二撤销功能
 public:
     Action() {}
     virtual ~Action() {}
-    virtual bool undo(){cout<<"action基类"<<endl;return false;};//主动从栈中弹出操作并撤销
+    virtual bool undo(){return false;};//主动从栈中弹出操作并撤销
     
     inline bool check(){return post != nullptr;}
     
     void init(Client* client,bool add,Post* p);
     
-    void invalidate(){post = nullptr; used = true;}//使该操作无效化，防止野指针
+    virtual void invalidate(){post = nullptr;used =1;};
 
     virtual void clean(Client* client_context){};//清理资源,被动从栈中删除操作时手动调用
+
+    virtual string type()=0;
     
     bool is_add = 0;//是添加操作还是删除操作
     bool used = 0;//操作是否已经被撤销过，安全检查用
@@ -44,9 +46,13 @@ public:
     PostAction() {}
     ~PostAction() override {} 
     
+    void invalidate() override{post_node = nullptr;post = nullptr;used = 1;}
+
     bool undo() override;//主动从栈中弹出操作并撤销
     
     void clean(Client* client) override;//被动从栈中删除操作时手动调用，彻底删除帖子时调用，防止野指针
+
+    string type() override{return is_add ? "发帖操作" : "删帖操作";};
 
     ListNode<Post>* post_node;//操作的帖子的节点指针
 };
@@ -59,6 +65,7 @@ public:
 
     bool undo() override;//主动从栈中弹出操作并撤销
     //每次彻底删除帖子时调用，检查该操作的帖子是否被删除，若被删除则将post指针置为空,防止野指针
+    string type() override{return is_add ? "点赞操作" : "取消点赞操作";};
 };
 
 class CommentAction: public Action{//评论操作
@@ -66,10 +73,14 @@ public:
     CommentAction(ListNode<Comment>* comment_node) : comment_node(comment_node) {}
     CommentAction() {}
     ~CommentAction() override {}
+
+    void invalidate() override{comment_node = nullptr;post = nullptr;used = 1;}
     
     bool undo() override;//主动从栈中弹出操作并撤销
     
     void clean(Client* client_context) override;//被动从栈中删除操作时手动调用，彻底删除评论时调用，防止野指针
+
+    string type() override{return is_add?"添加评论操作":"删除评论操作";};
 
     ListNode<Comment>* comment_node;//操作的评论的节点指针
 };

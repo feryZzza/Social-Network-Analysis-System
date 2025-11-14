@@ -46,6 +46,8 @@ public:
     void notify_post_destroyed(Post* p); // 通知所有引用该 Post 的 Action，使其无效化
 
     void unregister_action_self(Post* p, Action* a);// Action 主动注销自身对 Post 的引用关系
+
+    void show_register();
 };
 
 #endif // UNDO_MANAGER_H

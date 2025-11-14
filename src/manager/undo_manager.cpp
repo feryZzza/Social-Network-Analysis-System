@@ -1,6 +1,9 @@
 #include "manager/undo_manager.h"
 #include "models/action.h" 
+#include <iostream>
+#include <string>
 
+using namespace std;
 
 int UndoManager::find_post_index(Post* p) {// 查找 Post 在注册表中的索引
     if (!p) return -1;
@@ -26,6 +29,7 @@ void UndoManager::register_action(Post* p, Action* a) {// 注册 Action 对 Post
         newPair.actions.add(a);
         registry.add(newPair);
     }
+
 }
 
 void UndoManager::unregister_action_self(Post* p, Action* a) {// Action 主动注销自身对 Post 的引用关系
@@ -51,9 +55,11 @@ void UndoManager::unregister_action_self(Post* p, Action* a) {// Action 主动�
 }
 
 void UndoManager::notify_post_destroyed(Post* p) {
+
     if (!p) return;
 
     int pair_index = find_post_index(p);
+
 
     if (pair_index != -1) {
 
@@ -68,4 +74,19 @@ void UndoManager::notify_post_destroyed(Post* p) {
 
         registry.remove(pair_index);
     }
+}
+
+void UndoManager::show_register(){
+    if (registry.empty()) {
+        std::cout << "注册表为空。\n";
+        return;
+    }
+    for(int i =0;i<registry.size();i++){
+        cout<<"帖子："<<registry[i].post->get_title()<<endl;
+        for(int j=0;j<registry[i].actions.size();j++){
+            string a = registry[i].actions[j]->type();
+            cout<<"操作"<<j<<": "<<a<<endl;
+        }
+    }
+
 }

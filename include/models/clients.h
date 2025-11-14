@@ -21,10 +21,11 @@ class Client{
 public:
     Client() {}
     Client(string name, string id, string password) : name(name), id(id), password(password) {}
+    ~Client();
 
     bool undo();//撤销上一次操作
 
-    void addPost(Post p);//发帖
+    void addPost(Post &p);//发帖
 
     void addComment(Post* post, Comment &comment);//评论帖子
 

@@ -140,6 +140,38 @@ public:
             delete temp;
         }
     }
+
+    LinkList(const LinkList& other) : head(nullptr), length(0), tail(nullptr) {// 拷贝构造函数
+        ListNode<T>* current = other.head;
+        while(current != nullptr) {
+            // 使用 add 方法安全地复制数据到新的节点中
+            this->add(current->data); 
+            current = current->next;
+        }
+    }
+
+    LinkList& operator=(const LinkList& other) { //等于赋值
+        if (this != &other) {
+            ListNode<T>* current = head;
+            while(current!=nullptr) {
+                ListNode<T>* temp = current;
+                current = current->next;
+                delete temp;
+            }
+            head = nullptr;
+            tail = nullptr;
+            length = 0;
+            
+            current = other.head;
+            while(current != nullptr) {
+                this->add(current->data);
+                current = current->next;
+            }
+        }
+        return *this;
+    }
+
+
     bool insert(int index, const T& x) override {//插入元素
         if(!index_safe(index)&&index!=0) return false;
         ListNode<T>* newListNode = new ListNode<T>();
@@ -147,7 +179,7 @@ public:
         if(index == 0) {//插入头节点
             newListNode->next = head;
             head = newListNode;
-            tail = newListNode;
+            if(length == 0) tail = newListNode; // 仅当列表为空时，新节点既是头又是尾
         }else if(index < length){//插入中间节点
             ListNode<T>* current = head;
             for(int i = 0; i < index - 1; i++) {
@@ -224,7 +256,7 @@ public:
         if(head == nullptr || head->data >= node->data) {//插入头节点
             node->next = head;
             head = node;
-            tail = node;
+            if(tail == nullptr) tail = node; // 确保空链表时 tail 也被设置
         }else{
             ListNode<T>* current = head;
             while(current->next != nullptr && current->next->data < node->data) {

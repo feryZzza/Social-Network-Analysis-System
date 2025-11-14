@@ -1,5 +1,6 @@
 #include "models/clients.h"
 #include "data_structure/lin_list.h"
+#include "manager/undo_manager.h"
 #include "models/Post.h"
 #include "models/action.h"
 
@@ -11,11 +12,10 @@ bool Client::undo(){//撤销上一次操作
     Action* a = a_stack.pop();
     a->undo();
     delete a;//删除操作
-    cout<<"操作栈大小"<<a_stack.size()<<endl;
     return true;
 }
 
-void Client::addPost(Post p){//发帖
+void Client::addPost(Post &p){//发帖
     p.set_author(this);
     p.set_idex(++post_time);
     posts.add(p);
@@ -30,6 +30,7 @@ void Client::addPost(Post p){//发帖
         cout<<"操作栈已满，删除最早的操作"<<endl;
         Action* temp = add_action(action);//将操作压入操作栈，并获取溢出的操作指针
         temp->clean(this);//清理资源，防止野指针
+        delete temp;//删除栈底操作
         temp = nullptr;
     }else{
         add_action(action);//将操作压入操作栈
@@ -112,6 +113,7 @@ void Client::addComment(Post* post, Comment &comment){
     post->addComment(comment,this);
     CommentAction* action = new CommentAction(post->comment_list.tail_ptr());//获取新评论的节点指针
     action->init(this,1,post);//初始化操作
+    UndoManager::instance().register_action(post, action);
     if(a_stack.full()){
         Action* temp = add_action(action);//将操作压入操作栈
         delete temp;//删除栈底操作
@@ -146,4 +148,17 @@ void Client::read_messege(){
         delete m;//删除消息
     }
     return;
+}
+
+Client::~Client(){
+    while(!a_stack.empty()){
+        Action* a = a_stack.pop();
+        a->invalidate();//清理资源
+        delete a;//删除操作
+        a = nullptr;
+    }
+    while (!m_q.empty()){
+        massege* m = m_q.dequeue();
+        delete m;//删除消息
+    }
 }

@@ -11,13 +11,10 @@ void Action::init(Client* c,bool add,Post* p){//初始化操作
 }//初始化
 
 
-
 void PostAction::clean(Client* client_context) {
     if (!post || post_node == nullptr) return;
-
     client_context->posts.fake_remove(post_node->data.get_idex());//从用户的帖子列表中移除该帖子 
     UndoManager::instance().notify_post_destroyed(post); //通知所有引用该 Post 的 Action，使其无效化
-
     delete post_node;
     post_node = nullptr;
 }
@@ -51,6 +48,8 @@ bool LikeAction::undo() {//主动从栈中弹出点赞操作并撤销
         return false;
     }else{
         post->receive_likes(client,true);
+        UndoManager::instance().unregister_action_self(post, this);//主动注销自身对帖子的引用关系
+        used = true;
         return true;
     }
 }
@@ -73,6 +72,7 @@ bool CommentAction::undo() {//主动从栈中弹出评论操作并撤销
         if(is_add){//评论操作，撤销即删评论
             post->author->deleteComment(post,comment_node->data.floor());//通过楼层删除评论
             used = true;
+            UndoManager::instance().unregister_action_self(post, this);
             return true;
         }else{//删评论操作，撤销即恢复评论
             post->comment_list.auto_insert(comment_node);//将评论按序插入评论列表
