@@ -12,14 +12,14 @@ void Action::init(Client* c,bool add,Post* p){//初始化操作
 
 
 
-PostAction::~PostAction(){
-    if(!check())return;
-    if(!used){//操作未被撤销，说明帖子仍然存在，彻底删除帖子前检查涉及到的操作栈，防止野指针
-        if(!is_add){//删帖操作，彻底删除帖子
+void PostAction::clean(Client* client_context) {
+    if (!post || post_node == nullptr) return;
 
-            delete post_node;//删除该帖子
-        }
-    }
+    client_context->posts.fake_remove(post_node->data.get_idex());//从用户的帖子列表中移除该帖子 
+    UndoManager::instance().notify_post_destroyed(post); //通知所有引用该 Post 的 Action，使其无效化
+
+    delete post_node;
+    post_node = nullptr;
 }
 
 bool PostAction::undo() {//主动从栈中弹出发帖操作并撤销
@@ -28,20 +28,16 @@ bool PostAction::undo() {//主动从栈中弹出发帖操作并撤销
         used = true;
         return false;
     }else{
-        if(is_add){//发帖操作，撤销即删帖
-            client->deletePost(post);//假删除帖子
-            //通知其他操作栈中的该帖子指针被删除，防止野指针
-            UndoManager::instance().notify_post_destroyed(post);
-            cout<<post_node->data<<endl;
+        if(is_add){//发帖操作，撤销即彻底删帖 (is_add=1)
+            client->deletePost(post);//先假删除
+
+            UndoManager::instance().notify_post_destroyed(post);//通知所有引用该 Post 的 Action，使其无效化
             delete post_node;//删除该帖子
             post_node = nullptr;
-            cout<<"撤销成功"<<endl;
-            used = true;
-            return true;
         }else{//删帖操作，撤销即恢复帖子
             client->posts.auto_insert(post_node);//将帖子按序插入帖子列表
-            used = true;
         }
+        used = true;
         return true;
     }
 }
@@ -58,14 +54,14 @@ bool LikeAction::undo() {//主动从栈中弹出点赞操作并撤销
         return true;
     }
 }
+void CommentAction::clean(Client* client_context) {
+    if (!post || comment_node == nullptr) return; 
 
-CommentAction::~CommentAction(){
-    if(!check())return;
-    if(!used){//操作未被撤销，说明帖子仍然存在，彻底删除帖子前检查涉及到的操作栈，防止野指针
-        if(!is_add){//删评论操作，彻底删除评论
-            delete comment_node;//删除该评论
-        }
-    }
+    client_context->receive_comment(false);//被评论数减一
+    post->comment_list.fake_remove(comment_node->data.floor());//从帖子评论列表中移除该评论
+
+    delete comment_node;
+    comment_node = nullptr;
 }
 
 bool CommentAction::undo() {//主动从栈中弹出评论操作并撤销

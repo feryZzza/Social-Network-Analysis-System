@@ -51,10 +51,6 @@ public:
 
     bool a_stack_full(){return a_stack.full();}//操作栈是否为满
 
-    bool undo_safe_check(Post* p);//检查撤销操作涉及的帖子是否被删除，防止野指针
-
-    void undo_safe_update(Post* p);//每次彻底删除帖子时调用，删去彻底释放的指针，若有则将post指针置为空,防止野指针
-
     void receive_messege(massege* m){//接收消息
         m_q.enqueue(m);
     }
@@ -67,7 +63,6 @@ public:
     bool operator==(const Client& other) const {return this->name == other.name;}
 
     int action_num(){return a_stack.size();}
-    LinkList<Post*> safe_posts;//空间仍然存在的节点指针列表，用于检查操作栈中的帖子是否被删除，防止野指针
 
 private:
     int post_time = 0;//发帖次数,用于生成帖子ID，每发一次帖+1，不会因为删帖而减少，用于区分帖子先后
