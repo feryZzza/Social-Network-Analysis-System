@@ -15,7 +15,7 @@ class Comment;
 class FileManager {
 public:
     // 文件路径常量
-    const std::string file = "clients.dat";
+    const std::string file = "../data/clients.dat";
 
     // 单例模式访问
     inline static FileManager& instance() {

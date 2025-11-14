@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include "models/clients.h"
+
 using namespace std;
 
 class Client;
@@ -18,6 +18,10 @@ public:
     int floor(){return Floor;}
     Client* get_author(){return author;}
     string get_content(){return content;}
+
+    int get_comment_floor() const { return comment_floor; }// 获取被评论的楼层
+    void set_author(Client* a) { author = a; } // 用于加载时重建指针
+
 
     // 重载输出
     friend std::ostream& operator<< (std::ostream& os, const Comment& c);
@@ -34,10 +38,5 @@ private:
     int Floor=1; //评论楼层，借鉴贴吧
     int comment_floor = -1; //评论的楼层，-1表示直接评论帖子，非-1表示评论某一楼层
 };
-
-
-
-
-
 
 #endif

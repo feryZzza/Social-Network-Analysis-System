@@ -59,6 +59,10 @@ public:
     void read_messege();
 
     string ID(){return id;}//返回用户ID
+    string Password() const { return password;}
+    int PostTime() const { return post_time;}
+    void setPostTime(int t) { post_time = t;}
+
 
     //重载输出
     friend std::ostream& operator<< (std::ostream& os,Client& c);
