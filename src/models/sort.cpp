@@ -104,14 +104,20 @@ void ShiyingSort(SeqList<T>& arr, bool (*count)(const T& a, const T& b)) {
 }
 
 //  比较函数（核心排序规则） 
-// 用户排序：按好友数降序（影响力）
+// 用户排序：1. 按好友数降序（主规则）；2. 好友数相等时按用户ID字典序升序（次规则）
 bool compareHaoyou(const client& a, const client& b) {
-    return a.friendCount > b.friendCount;
+    if (a.friendCount != b.friendCount) {
+        return a.friendCount > b.friendCount; // 主规则：好友数降序
+    }
+    return a.id < b.id; // 次规则：用户ID升序（固定相等元素顺序）
 }
 
-// 帖子排序：按点赞数降序（热门程度）
+// 帖子排序：1. 按点赞数降序（主规则）；2. 点赞数相等时按帖子ID字典序升序（次规则）
 bool comparePost(const Post& a, const Post& b) {
-    return a.likes > b.likes;
+    if (a.likes != b.likes) {
+        return a.likes > b.likes; // 主规则：点赞数降序
+    }
+    return a.id < b.id; // 次规则：帖子ID升序（固定相等元素顺序）
 }
 
 // 排行榜生成函数（核心功能） 
