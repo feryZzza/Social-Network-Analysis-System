@@ -5,6 +5,7 @@
 #include <string>
 
 class Client; // 前向声明
+class Post;
 
 class FileManager {
 public:
@@ -21,17 +22,12 @@ public:
 private:
     FileManager() = default;
     
-    // 辅助结构：用于加载时临时存储关系
-    struct TempLoadData {
-        std::string client_id;
-        std::string post_id; // 格式: clientID_postIndex
+    // 临时结构：用于存储“帖子-点赞者ID列表”的关系
+    struct TempPostLikers {
+        Post* post_ptr; // 指向内存中稳定的 Post 对象
         LinkList<std::string> liker_ids;
-        LinkList<std::string> comment_author_ids;
-        bool operator==(const TempLoadData& other) const {
-            return post_id == other.post_id;
-        }
     };
-    LinkList<TempLoadData> temp_load_data;
+    LinkList<TempPostLikers> temp_liker_links;
 
     // JSON 辅助函数
     std::string escapeJsonString(const std::string& s);
@@ -39,10 +35,10 @@ private:
     
     // 解析辅助函数
     std::string extractValue(const std::string& json, const std::string& key, int& startPos);
-    std::string extractObject(const std::string& json, int& startPos);
-    std::string extractArray(const std::string& json, int& startPos);
     
-    bool reconstructPointers(SeqList<Client>& clients);
+    // 查找辅助
+    Client* findClient(SeqList<Client>& clients, const std::string& id);
+    Post* findPost(SeqList<Client>& clients, const std::string& globalId);
 };
 
 #endif

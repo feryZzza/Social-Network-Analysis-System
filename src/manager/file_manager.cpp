@@ -39,89 +39,129 @@ string FileManager::unescapeJsonString(const string& s) {
     return res;
 }
 
+// 辅助查找 Client
+Client* FileManager::findClient(SeqList<Client>& clients, const std::string& id) {
+    for(int i = 0; i < clients.size(); ++i) {
+        if(clients[i].ID() == id) return &clients[i];
+    }
+    return nullptr;
+}
+
+// 辅助查找 Post (globalId 格式: "clientId_postIndex")
+Post* FileManager::findPost(SeqList<Client>& clients, const std::string& globalId) {
+    size_t underscore = globalId.find('_');
+    if(underscore == string::npos) return nullptr;
+    
+    string clientId = globalId.substr(0, underscore);
+    string indexStr = globalId.substr(underscore + 1);
+    int index = stoi(indexStr);
+    
+    Client* c = findClient(clients, clientId);
+    if(!c) return nullptr;
+    
+    // 遍历用户的帖子找到对应的 idex
+    for(int i = 0; i < c->posts.size(); ++i) {
+        if(c->posts[i].get_idex() == index) {
+            return &c->posts[i];
+        }
+    }
+    return nullptr;
+}
+
 bool FileManager::save(SeqList<Client>& clients) {
     ofstream out(file_path);
     if (!out.is_open()) return false;
 
-    out << "{\n  \"clients\": [\n";
+    out << "{\n";
 
+    // 1. 写入所有 Clients
+    out << "  \"clients\": [\n";
     for (int i = 0; i < clients.size(); ++i) {
         Client& c = clients[i];
-        out << "    {\n";
-        out << "      \"name\": \"" << escapeJsonString(c.Name()) << "\",\n";
-        out << "      \"id\": \"" << escapeJsonString(c.ID()) << "\",\n";
-        out << "      \"password\": \"" << escapeJsonString(c.Password()) << "\",\n";
-        out << "      \"post_time\": " << c.PostTime() << ",\n";
-        
-        out << "      \"posts\": [\n";
+        out << "    { \"name\": \"" << escapeJsonString(c.Name()) << "\", "
+            << "\"id\": \"" << escapeJsonString(c.ID()) << "\", "
+            << "\"password\": \"" << escapeJsonString(c.Password()) << "\", "
+            << "\"post_time\": " << c.PostTime() << " }";
+        if (i < clients.size() - 1) out << ",";
+        out << "\n";
+    }
+    out << "  ],\n";
+
+    // 2. 写入所有 Posts (扁平化)
+    out << "  \"posts\": [\n";
+    bool firstPost = true;
+    for (int i = 0; i < clients.size(); ++i) {
+        Client& c = clients[i];
         for (int j = 0; j < c.posts.size(); ++j) {
+            if (!firstPost) out << ",\n";
             Post& p = c.posts[j];
-            out << "        {\n";
-            out << "          \"title\": \"" << escapeJsonString(p.get_title()) << "\",\n";
-            out << "          \"content\": \"" << escapeJsonString(p.get_content()) << "\",\n";
-            out << "          \"idex\": " << p.get_idex() << ",\n";
-            out << "          \"floor\": " << p.get_floor() << ",\n";
+            out << "    {\n";
+            out << "      \"global_id\": \"" << c.ID() << "_" << p.get_idex() << "\",\n"; // 唯一标识
+            out << "      \"author_id\": \"" << c.ID() << "\",\n";
+            out << "      \"title\": \"" << escapeJsonString(p.get_title()) << "\",\n";
+            out << "      \"content\": \"" << escapeJsonString(p.get_content()) << "\",\n";
+            out << "      \"idex\": " << p.get_idex() << ",\n";
+            out << "      \"floor\": " << p.get_floor() << ",\n";
             
-            // 保存点赞者ID数组
-            out << "          \"likers\": [";
+            // Likers
+            out << "      \"likers\": [";
             for(int k=0; k < p.get_likes_list().size(); ++k) {
                 if(p.get_likes_list()[k])
                     out << "\"" << escapeJsonString(p.get_likes_list()[k]->ID()) << "\"";
                 if(k < p.get_likes_list().size() - 1) out << ", ";
             }
-            out << "],\n";
-
-            // 保存评论
-            out << "          \"comments\": [\n";
-            for(int k=0; k < p.comment_list.size(); ++k) {
-                Comment& com = p.comment_list[k];
-                out << "            {\n";
-                out << "              \"content\": \"" << escapeJsonString(com.get_content()) << "\",\n";
-                out << "              \"floor\": " << com.floor() << ",\n";
-                out << "              \"reply_floor\": " << com.get_comment_floor() << ",\n";
-                string authorId = com.get_author() ? com.get_author()->ID() : "";
-                out << "              \"author_id\": \"" << escapeJsonString(authorId) << "\"\n";
-                out << "            }";
-                if(k < p.comment_list.size() - 1) out << ",";
-                out << "\n";
-            }
-            out << "          ]\n";
-            out << "        }";
-            if(j < c.posts.size() - 1) out << ",";
-            out << "\n";
+            out << "]\n";
+            out << "    }";
+            firstPost = false;
         }
-        out << "      ]\n";
-        out << "    }";
-        if(i < clients.size() - 1) out << ",";
-        out << "\n";
     }
+    out << "\n  ],\n";
 
-    out << "  ]\n}";
+    // 3. 写入所有 Comments (扁平化)
+    out << "  \"comments\": [\n";
+    bool firstComment = true;
+    for (int i = 0; i < clients.size(); ++i) {
+        Client& c = clients[i];
+        for (int j = 0; j < c.posts.size(); ++j) {
+            Post& p = c.posts[j];
+            for(int k=0; k < p.comment_list.size(); ++k) {
+                if (!firstComment) out << ",\n";
+                Comment& com = p.comment_list[k];
+                out << "    {\n";
+                out << "      \"post_global_id\": \"" << c.ID() << "_" << p.get_idex() << "\",\n";
+                out << "      \"author_id\": \"" << (com.get_author() ? com.get_author()->ID() : "") << "\",\n";
+                out << "      \"content\": \"" << escapeJsonString(com.get_content()) << "\",\n";
+                out << "      \"floor\": " << com.floor() << ",\n";
+                out << "      \"reply_floor\": " << com.get_comment_floor() << "\n";
+                out << "    }";
+                firstComment = false;
+            }
+        }
+    }
+    out << "\n  ]\n";
+
+    out << "}";
     out.close();
     return true;
 }
 
 // 简单的查找辅助函数
-// 在 json 字符串中从 startPos 开始查找 "key": value
 string FileManager::extractValue(const string& json, const string& key, int& startPos) {
     string searchKey = "\"" + key + "\":";
     size_t found = json.find(searchKey, startPos);
     if (found == string::npos) return "";
 
     size_t valStart = found + searchKey.length();
-    // 跳过空白
     while(valStart < json.length() && (json[valStart] == ' ' || json[valStart] == '\n' || json[valStart] == '\t')) valStart++;
 
     if (valStart >= json.length()) return "";
 
     if (json[valStart] == '"') { // 字符串
         size_t valEnd = json.find("\"", valStart + 1);
-        // 处理转义引号的情况 (简单处理)
         while(valEnd != string::npos && json[valEnd-1] == '\\') {
              valEnd = json.find("\"", valEnd + 1);
         }
         if (valEnd == string::npos) return "";
-        // 更新 startPos 以便下次搜索
         startPos = valEnd + 1;
         return unescapeJsonString(json.substr(valStart + 1, valEnd - valStart - 1));
     } else { // 数字 或 bool
@@ -132,7 +172,6 @@ string FileManager::extractValue(const string& json, const string& key, int& sta
     }
 }
 
-// 加载函数
 bool FileManager::load(SeqList<Client>& clients) {
     ifstream in(file_path);
     if (!in.is_open()) return false;
@@ -142,181 +181,162 @@ bool FileManager::load(SeqList<Client>& clients) {
     string json = buffer.str();
     in.close();
 
-    // 重置列表
+    // 重置
     clients.~SeqList();
     new (&clients) SeqList<Client>(100);
-    temp_load_data.~LinkList();
-    new (&temp_load_data) LinkList<TempLoadData>();
+    temp_liker_links.~LinkList();
+    new (&temp_liker_links) LinkList<TempPostLikers>();
 
-    int globalPos = 0;
-    
-    // 1. 查找 "clients": [
-    size_t clientsStart = json.find("\"clients\":");
-    if (clientsStart == string::npos) return false;
-    size_t arrayStart = json.find("[", clientsStart);
-    if (arrayStart == string::npos) return false;
-    
-    globalPos = arrayStart + 1;
-
-    // 循环解析 Client 对象
-    while (true) {
-        size_t objStart = json.find("{", globalPos);
-        size_t arrayEnd = json.find("]", globalPos);
+    // --- 1. 解析 Clients ---
+    size_t clientsStartKey = json.find("\"clients\":");
+    if(clientsStartKey != string::npos) {
+        size_t arrStart = json.find("[", clientsStartKey);
+        size_t arrEnd = json.find("]", arrStart); // 这是一个简化的查找，假设没有嵌套数组在对象里
         
-        // 如果先遇到了 ]，说明数组结束
-        if (arrayEnd != string::npos && (objStart == string::npos || arrayEnd < objStart)) break;
-        
-        // 解析 Client 基础信息
-        int clientPos = objStart;
-        string name = extractValue(json, "name", clientPos);
-        string id = extractValue(json, "id", clientPos);
-        string pwd = extractValue(json, "password", clientPos);
-        string ptStr = extractValue(json, "post_time", clientPos);
-        int postTime = ptStr.empty() ? 0 : stoi(ptStr);
-
-        Client client(name, id, pwd);
-        client.setPostTime(postTime);
-
-        // 解析 Posts
-        size_t postsStartKey = json.find("\"posts\":", clientPos);
-        if (postsStartKey != string::npos) {
-            size_t pArrayStart = json.find("[", postsStartKey);
-            int postGlobalPos = pArrayStart + 1;
+        int pos = arrStart + 1;
+        while(pos < arrEnd) {
+            size_t objStart = json.find("{", pos);
+            if(objStart == string::npos || objStart > arrEnd) break;
             
-            while(true) {
-                size_t pObjStart = json.find("{", postGlobalPos);
-                size_t pArrayEnd = json.find("]", postGlobalPos);
-                // 检查 Posts 数组是否结束
-                if (pArrayEnd < pObjStart) break; 
-
-                int pPos = pObjStart;
-                string title = extractValue(json, "title", pPos);
-                string content = extractValue(json, "content", pPos);
-                string idexStr = extractValue(json, "idex", pPos);
-                string floorStr = extractValue(json, "floor", pPos);
-                
-                Post post(title, content);
-                post.set_idex(stoi(idexStr));
-                post.set_floor(stoi(floorStr));
-                // --- 关键修改：初始化为 nullptr，防止指向栈上即将销毁的 client ---
-                post.set_author(nullptr); 
-
-                TempLoadData tData;
-                tData.client_id = id;
-                tData.post_id = id + "_" + idexStr;
-
-                // 解析 Likers 数组
-                size_t likerKey = json.find("\"likers\":", pPos);
-                size_t lArrStart = json.find("[", likerKey);
-                size_t lArrEnd = json.find("]", lArrStart);
-                string likersRaw = json.substr(lArrStart+1, lArrEnd - lArrStart - 1);
-                
-                int lPos = 0;
-                while(true) {
-                    size_t q1 = likersRaw.find("\"", lPos);
-                    if(q1 == string::npos) break;
-                    size_t q2 = likersRaw.find("\"", q1+1);
-                    string lid = unescapeJsonString(likersRaw.substr(q1+1, q2-q1-1));
-                    tData.liker_ids.add(lid);
-                    lPos = q2 + 1;
-                }
-
-                // 解析 Comments 数组
-                size_t commentsKey = json.find("\"comments\":", pPos);
-                size_t cArrayStart = json.find("[", commentsKey);
-                int cPos = cArrayStart + 1;
-                
-                while(true) {
-                     size_t cObjStart = json.find("{", cPos);
-                     size_t checkClose = cPos;
-                     while(isspace(json[checkClose])) checkClose++;
-                     if(json[checkClose] == ']') break;
-
-                     string cContent = extractValue(json, "content", cPos);
-                     string cFloor = extractValue(json, "floor", cPos);
-                     string cRepFloor = extractValue(json, "reply_floor", cPos);
-                     string cAuthId = extractValue(json, "author_id", cPos);
-                     
-                     if(cContent.empty()) break;
-
-                     Comment cmt(nullptr, cContent, stoi(cRepFloor));
-                     cmt.set_floor(stoi(cFloor));
-                     post.comment_list.add(cmt);
-                     tData.comment_author_ids.add(cAuthId);
-                     
-                     size_t nextObj = json.find("}", cPos); 
-                     cPos = nextObj + 1;
-                     while(isspace(json[cPos]) || json[cPos] == ',') cPos++;
-                     if(json[cPos] == ']') break;
-                }
-                
-                client.posts.add(post);
-                temp_load_data.add(tData);
-
-                postGlobalPos = json.find("}", pPos) + 1; // Post 结束
-                globalPos = postGlobalPos;
-            }
+            int localPos = objStart;
+            string name = extractValue(json, "name", localPos);
+            string id = extractValue(json, "id", localPos);
+            string pwd = extractValue(json, "password", localPos);
+            string pt = extractValue(json, "post_time", localPos);
+            
+            Client c(name, id, pwd);
+            if(!pt.empty()) c.setPostTime(stoi(pt));
+            clients.add(c);
+            
+            pos = json.find("}", objStart) + 1;
         }
-        
-        clients.add(client);
-        
-        size_t nextClientObj = json.find("}", globalPos); 
-        globalPos = nextClientObj + 1;
     }
 
-    reconstructPointers(clients);
-    return true;
-}
+    // --- 2. 解析 Posts ---
+    size_t postsStartKey = json.find("\"posts\":");
+    if(postsStartKey != string::npos) {
+        size_t arrStart = json.find("[", postsStartKey);
+        // 我们需要更强壮的循环，因为 post 里面有 likers 数组
+        int pos = arrStart + 1;
+        
+        while(true) {
+            size_t objStart = json.find("{", pos);
+            // 检查是否到达下一个由Core管理的数组或文件结束
+            size_t nextArrKey = json.find("\"comments\":", pos); 
+            // 如果找不到下一个 key，就看文件最后的 }
+            if(nextArrKey == string::npos) nextArrKey = json.rfind("}"); 
 
-bool FileManager::reconstructPointers(SeqList<Client>& clients) {
-    for (int i = 0; i < clients.size(); ++i) {
-        Client& client = clients[i];
-        for (int j = 0; j < client.posts.size(); ++j) {
-            Post& post = client.posts[j];
+            if(objStart == string::npos || objStart > nextArrKey) break;
+
+            int localPos = objStart;
+            string aid = extractValue(json, "author_id", localPos);
+            string title = extractValue(json, "title", localPos);
+            string content = extractValue(json, "content", localPos);
+            string idexStr = extractValue(json, "idex", localPos);
+            string floorStr = extractValue(json, "floor", localPos);
             
-            // --- 关键修复 ---
-            // 重新将 author 指向内存中真正的 client 对象
-            post.set_author(&client);
-
-            // 后续逻辑：恢复点赞和评论关系
-            string global_post_id = client.ID() + "_" + to_string(post.get_idex());
-
-            TempLoadData* info = nullptr;
-            for (int k = 0; k < temp_load_data.size(); ++k) {
-                if (temp_load_data[k].post_id == global_post_id) {
-                    info = &temp_load_data[k];
-                    break;
+            Client* author = findClient(clients, aid);
+            if(author) {
+                Post p(title, content);
+                if(!idexStr.empty()) p.set_idex(stoi(idexStr));
+                if(!floorStr.empty()) p.set_floor(stoi(floorStr));
+                p.set_author(author); // 此时 author 是内存中稳定的指针
+                
+                author->posts.add(p);
+                
+                // 记录点赞 (p 是拷贝，我们需要获取链表中稳定的指针)
+                Post* stablePtr = author->posts.tail_ptr() ? &author->posts.tail_ptr()->data : nullptr;
+                
+                if(stablePtr) {
+                    TempPostLikers tpl;
+                    tpl.post_ptr = stablePtr;
+                    
+                    // 解析 likers
+                    size_t lKey = json.find("\"likers\":", localPos); // localPos 已经被 extractValue 更新过
+                    size_t lStart = json.find("[", lKey);
+                    size_t lEnd = json.find("]", lStart);
+                    string lRaw = json.substr(lStart+1, lEnd-lStart-1);
+                    
+                    int lp = 0;
+                    while(true) {
+                        size_t q1 = lRaw.find("\"", lp);
+                        if(q1 == string::npos) break;
+                        size_t q2 = lRaw.find("\"", q1+1);
+                        string lid = unescapeJsonString(lRaw.substr(q1+1, q2-q1-1));
+                        tpl.liker_ids.add(lid);
+                        lp = q2 + 1;
+                    }
+                    temp_liker_links.add(tpl);
                 }
             }
             
-            if (!info) continue;
+            // 跳过当前对象，找到结束的 }
+            // 注意：对象里有 likers 数组，所以简单的 find("}") 可能找到数组的结尾
+            // 我们通过 counting braces 或者只是简单地跳过 likers 数组后再找 }
+            // 这里采用简单策略：extractValue 已经推进了 localPos 经过了 floor
+            // 我们只需要再处理 likers。
+            
+            // 查找对象结束
+            // 上面的 likers 解析没有更新 localPos，这里修正
+            // 手动查找当前层级的 }
+            // 我们可以利用 "likers" 后面跟着的 ]，然后再找 }
+            size_t lKey = json.find("\"likers\":", objStart);
+            size_t lEnd = json.find("]", lKey);
+            pos = json.find("}", lEnd) + 1;
+        }
+    }
 
-            // 重建点赞
-            for (int k = 0; k < info->liker_ids.size(); ++k) {
-                string targetId = info->liker_ids[k];
-                for (int m = 0; m < clients.size(); ++m) {
-                    if (clients[m].ID() == targetId) {
-                        post.get_likes_list().add(&clients[m]);
-                        break;
-                    }
-                }
+    // --- 3. 解析 Comments ---
+    size_t commentsStartKey = json.find("\"comments\":");
+    if(commentsStartKey != string::npos) {
+        size_t arrStart = json.find("[", commentsStartKey);
+        int pos = arrStart + 1;
+        
+        while(true) {
+            size_t objStart = json.find("{", pos);
+            size_t fileEnd = json.rfind("}");
+            // 检查是否超出范围 (例如到了最后的 })
+            // 简单检查：如果 } 比 { 近，说明数组结束
+            size_t arrEndC = json.find("]", pos); // 当前数组结束
+            
+            if(objStart == string::npos || (arrEndC != string::npos && objStart > arrEndC)) break;
+
+            int localPos = objStart;
+            string pid = extractValue(json, "post_global_id", localPos);
+            string aid = extractValue(json, "author_id", localPos);
+            string content = extractValue(json, "content", localPos);
+            string floorStr = extractValue(json, "floor", localPos);
+            string repFloorStr = extractValue(json, "reply_floor", localPos);
+            
+            Post* post = findPost(clients, pid);
+            Client* author = findClient(clients, aid);
+            
+            if(post && author) {
+                int rf = repFloorStr.empty() ? -1 : stoi(repFloorStr);
+                Comment c(author, content, rf); // 此时 author 指针稳定
+                if(!floorStr.empty()) c.set_floor(stoi(floorStr));
+                
+                post->comment_list.add(c);
             }
+            
+            pos = json.find("}", objStart) + 1;
+        }
+    }
 
-            // 重建评论作者
-            for (int k = 0; k < post.comment_list.size(); ++k) {
-                if (k >= info->comment_author_ids.size()) break;
-                string targetId = info->comment_author_ids[k];
-                for (int m = 0; m < clients.size(); ++m) {
-                    if (clients[m].ID() == targetId) {
-                        post.comment_list[k].set_author(&clients[m]);
-                        break;
-                    }
-                }
+    // --- 4. 链接点赞 ---
+    for(int i=0; i<temp_liker_links.size(); ++i) {
+        TempPostLikers& tpl = temp_liker_links[i];
+        for(int j=0; j<tpl.liker_ids.size(); ++j) {
+            Client* liker = findClient(clients, tpl.liker_ids[j]);
+            if(liker) {
+                tpl.post_ptr->get_likes_list().add(liker);
             }
         }
     }
     
-    temp_load_data.~LinkList();
-    new (&temp_load_data) LinkList<TempLoadData>();
+    // 清理
+    temp_liker_links.~LinkList();
+    new (&temp_liker_links) LinkList<TempPostLikers>();
+
     return true;
 }

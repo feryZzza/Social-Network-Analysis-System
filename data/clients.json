@@ -1,27 +1,82 @@
 {
   "clients": [
+    { "name": "张伟(技术宅)", "id": "zhangwei", "password": "pass1", "post_time": 1 },
+    { "name": "李静(生活派)", "id": "lijing", "password": "pass2", "post_time": 1 },
+    { "name": "王磊(杠精)", "id": "wanglei", "password": "pass3", "post_time": 0 },
+    { "name": "刘洋(吃货)", "id": "liuyang", "password": "pass4", "post_time": 0 },
+    { "name": "陈秀英(广场舞)", "id": "chenxiuying", "password": "pass5", "post_time": 1 }
+  ],
+  "posts": [
     {
-      "name": "张伟",
-      "id": "zhangwei",
-      "password": "pass123",
-      "post_time": 1,
-      "posts": [
-        {
-          "title": "C++从入门到放弃",
-          "content": "指针太难了！",
-          "idex": 1,
-          "floor": 2,
-          "likers": [],
-          "comments": [
-            {
-              "content": "多写代码就好了",
-              "floor": 2,
-              "reply_floor": -1,
-              "author_id": ""
-            }
-          ]
-        }
-      ]
+      "global_id": "zhangwei_1",
+      "author_id": "zhangwei",
+      "title": "深度解析 C++ 指针与引用",
+      "content": "指针是 C++ 的灵魂，也是新手的噩梦...",
+      "idex": 1,
+      "floor": 5,
+      "likers": ["lijing", "wanglei", "liuyang", "chenxiuying"]
+    },
+    {
+      "global_id": "lijing_1",
+      "author_id": "lijing",
+      "title": "心情不好",
+      "content": "想把账号注销了...",
+      "idex": 1,
+      "floor": 2,
+      "likers": ["zhangwei"]
+    },
+    {
+      "global_id": "chenxiuying_1",
+      "author_id": "chenxiuying",
+      "title": "今晚广场舞集合",
+      "content": "老地方，不见不散！",
+      "idex": 1,
+      "floor": 3,
+      "likers": ["liuyang"]
+    }
+  ],
+  "comments": [
+    {
+      "post_global_id": "zhangwei_1",
+      "author_id": "lijing",
+      "content": "太深奥了，大佬带带我！",
+      "floor": 2,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "zhangwei_1",
+      "author_id": "wanglei",
+      "content": "这有什么难的？有手就行。",
+      "floor": 3,
+      "reply_floor": 2
+    },
+    {
+      "post_global_id": "zhangwei_1",
+      "author_id": "liuyang",
+      "content": "楼上别站着说话不腰疼。",
+      "floor": 4,
+      "reply_floor": 3
+    },
+    {
+      "post_global_id": "zhangwei_1",
+      "author_id": "zhangwei",
+      "content": "大家理性讨论，别吵架。",
+      "floor": 5,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "lijing_1",
+      "author_id": "chenxiuying",
+      "content": "妹子别想不开，来跳舞！",
+      "floor": 2,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "chenxiuying_1",
+      "author_id": "wanglei",
+      "content": "阿姨们注意身体，支持！",
+      "floor": 3,
+      "reply_floor": -1
     }
   ]
 }
