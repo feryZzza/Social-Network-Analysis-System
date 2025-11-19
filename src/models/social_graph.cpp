@@ -164,3 +164,10 @@ bool SocialGraph::shortestPath(int start, int target, LinkList<int>& path) const
 bool SocialGraph::validVertex(int v) const {
     return v >= 0 && static_cast<std::size_t>(v) < vertex_count_;
 }
+
+const LinkList<int>* SocialGraph::getNeighbors(int u) const {
+    if (!validVertex(u) || userForm == nullptr) {
+        return nullptr;
+    }
+    return &(*userForm)[u];
+}

@@ -1,29 +1,40 @@
 #include <iostream>
 #include "manager/core.h"
 #include <string>
-#include <vector> // 仅用于测试脚本管理测试数据，Core 内部不依赖 STL
+#include <vector> 
 
 using namespace std;
 
+// 辅助函数：打印分割线
 void printSeparator(const string& title) {
     cout << "\n=============================================" << endl;
     cout << "   " << title << endl;
     cout << "=============================================" << endl;
 }
 
+// 辅助函数：打印用户收件箱
+void checkInbox(Client* c) {
+    if (!c) return;
+    cout << "\n[查看消息] 用户: " << c->Name() << endl;
+    Core::instance().userReadMessages(c);
+}
+
 int main() {
-    printSeparator("社交网络管理系统 (Social Graph Test)");
+    printSeparator("社交网络管理系统 - 全功能集成测试");
 
     Core& core = Core::instance();
 
-    // 1. 加载数据 (模拟系统启动)
-    if (core.loadData()) {
+    // ==========================================
+    // 1. 系统初始化与数据加载
+    // ==========================================
+    bool hasData = core.loadData();
+    if (hasData) {
         cout << "[系统] 成功加载历史数据。" << endl;
     } else {
         cout << "[系统] 无历史数据，初始化全新环境..." << endl;
     }
 
-    // 如果是空环境，初始化测试数据
+    // 如果是空环境，注册测试用户
     if (core.getAllClients().empty()) {
         cout << "\n[Init] 正在注册基础用户群..." << endl;
         core.registerClient("Alice", "id_001", "pass1");
@@ -34,95 +45,165 @@ int main() {
         core.registerClient("Frank", "id_006", "pass6"); 
     }
     
-    // 获取用户指针
+    // 获取用户指针 (用于后续测试)
     Client* alice = core.getClientByName("Alice");
     Client* bob = core.getClientByName("Bob");
     Client* charlie = core.getClientByName("Charlie");
     Client* dave = core.getClientByName("Dave");
     Client* eve = core.getClientByName("Eve");
+    Client* frank = core.getClientByName("Frank");
 
-    // --- 场景一：建立社交网络 ---
-    printSeparator("场景一：建立社交网络 (加好友)");
-    
-    if (alice && bob && charlie && dave && eve) {
-        cout << "构建社交网络..." << endl;
-        // 构建链式关系: Alice --friend--> Bob --friend--> Charlie --friend--> Dave
-        // Eve 是孤立的
+    // ==========================================
+    // 场景零：验证持久化 (如果是第二次运行)
+    // ==========================================
+    if (hasData && alice && bob) {
+        printSeparator("场景零：验证数据持久化状态");
+        // 检查上次保存的好友关系
+        int d = core.getRelationDistance(alice, bob);
+        if (d != -1) {
+            cout << "✅ [验证] 好友关系图谱恢复成功 (Alice与Bob距离: " << d << ")" << endl;
+        } else {
+            cout << "ℹ️ [提示] Alice 和 Bob 当前无关联。" << endl;
+        }
         
-        if (core.makeFriend(alice, bob) == SUCCESS)
-            cout << " + [Alice] 和 [Bob] 成为好友" << endl;
-        
-        if (core.makeFriend(bob, charlie) == SUCCESS)
-            cout << " + [Bob] 和 [Charlie] 成为好友" << endl;
-        
-        if (core.makeFriend(charlie, dave) == SUCCESS)
-            cout << " + [Charlie] 和 [Dave] 成为好友" << endl;
-
-        // 验证距离
-        int d1 = core.getRelationDistance(alice, bob);
-        cout << "\n[验证] Alice 和 Bob 的距离: " << d1 << " (预期: 1)" << endl;
-
-        int d2 = core.getRelationDistance(alice, charlie);
-        cout << "[验证] Alice 和 Charlie 的距离: " << d2 << " (预期: 2)" << endl;
-
-        int d3 = core.getRelationDistance(alice, dave);
-        cout << "[验证] Alice 和 Dave 的距离: " << d3 << " (预期: 3)" << endl;
-    } else {
-        cout << "❌ 无法获取所有测试用户，跳过测试。" << endl;
+        // 检查上次保存的帖子
+        if (alice->posts.size() > 0) {
+            cout << "✅ [验证] 用户帖子数据恢复成功 (Alice有 " << alice->posts.size() << " 条帖子)。" << endl;
+        }
     }
 
-    // --- 场景二：删除好友关系 ---
-    printSeparator("场景二：删除好友关系 (断开链接)");
+    // ==========================================
+    // 场景一：发帖、评论与点赞 (互动测试)
+    // ==========================================
+    printSeparator("场景一：内容互动 (Post, Comment, Like)");
     
     if (alice && bob && charlie) {
-        cout << "尝试删除 [Bob] 和 [Charlie] 的好友关系..." << endl;
-        CoreStatus status = core.deleteFriend(bob, charlie);
+        // 1. Alice 发帖
+        cout << ">>> Alice 发布了一条新动态..." << endl;
+        core.userAddPost(alice, "C++学习心得", "手写数据结构真是太有趣了！(才怪)");
+        Post* alicePost = &alice->posts.tail_ptr()->data; // 获取刚发的帖子
         
-        if (status == SUCCESS) {
-            cout << "✅ 删除成功。" << endl;
+        // 2. Bob 点赞并评论
+        cout << ">>> Bob 点赞并评论了 Alice..." << endl;
+        core.userLikePost(bob, alicePost);
+        core.userAddComment(bob, alicePost, "确实，特别是链表指针，令人头秃。", -1); // -1 表示直接回复帖子
+
+        // 3. Charlie 回复 Bob (楼中楼)
+        // 假设 Bob 的评论是第 2 楼 (1楼是帖子本身)
+        cout << ">>> Charlie 回复了 Bob 的评论 (楼中楼)..." << endl;
+        int bobFloor = alicePost->comment_list.tail_ptr()->data.floor(); // 获取Bob评论的楼层
+        core.userAddComment(charlie, alicePost, "同感，Segment Fault 才是永远的朋友。", bobFloor);
+
+        // 4. 打印帖子详情
+        cout << *alicePost << endl;
+
+        // 5. 检查 Alice 的消息通知
+        checkInbox(alice);
+    }
+
+    // ==========================================
+    // 场景二：撤销机制 (Undo System)
+    // ==========================================
+    printSeparator("场景二：后悔药测试 (Undo System)");
+
+    if (dave && eve) {
+        // 1. 测试撤销发帖
+        cout << ">>> Dave 发送了一条冲动的帖子..." << endl;
+        core.userAddPost(dave, "我讨厌写代码！", "毁灭吧赶紧的。");
+        cout << "   当前 Dave 帖子数: " << dave->posts.size() << endl;
+        
+        cout << ">>> Dave 后悔了，执行撤销 (Undo)..." << endl;
+        CoreStatus s1 = core.userUndo(dave);
+        if (s1 == SUCCESS) cout << "✅ 撤销成功。当前帖子数: " << dave->posts.size() << " (应为0)" << endl;
+        else cout << "❌ 撤销失败。" << endl;
+
+        // 2. 测试撤销点赞
+        // Eve 给 Alice 的帖子点赞
+        if (alice && alice->posts.size() > 0) {
+            Post* p = &alice->posts.tail_ptr()->data;
+            cout << "\n>>> Eve 点赞了 Alice 的帖子..." << endl;
+            core.userLikePost(eve, p);
+            cout << "   当前点赞数: " << p->likes_num() << endl;
+
+            cout << ">>> Eve 手滑了，撤销点赞..." << endl;
+            core.userUndo(eve);
+            cout << "✅ 撤销成功。当前点赞数: " << p->likes_num() << " (应减少1)" << endl;
+        }
+
+        // 3. 测试撤销删除评论 (高级)
+        // 让 Eve 发一条评论，然后删除它，然后撤销“删除”操作（即恢复评论）
+        if (alice && alice->posts.size() > 0) {
+            Post* p = &alice->posts.tail_ptr()->data;
+            cout << "\n>>> Eve 评论了 Alice..." << endl;
+            core.userAddComment(eve, p, "测试评论恢复功能", -1);
+            int commentCountBefore = p->comment_list.size();
+            int floorToRemove = p->comment_list.tail_ptr()->data.floor();
+
+            cout << ">>> Eve 删除了这条评论..." << endl;
+            core.userDeleteComment(eve, p, floorToRemove);
+            cout << "   当前评论数: " << p->comment_list.size() << endl;
+
+            cout << ">>> Eve 想要恢复评论 (撤销删除操作)..." << endl;
+            core.userUndo(eve); // 撤销刚才的删除
+            cout << "✅ 恢复成功。当前评论数: " << p->comment_list.size() << " (应恢复)" << endl;
             
-            // 验证直接关系
-            int d_direct = core.getRelationDistance(bob, charlie);
-            cout << "   -> Bob 和 Charlie 的距离: " << d_direct << " (预期: -1, 不连通)" << endl;
-            
-            // 验证间接关系 (链路是否断裂)
-            // 原本 Alice -> Bob -> Charlie -> Dave
-            // 现在 Bob -> Charlie 断了，所以 Alice -> Dave 也应该断了
-            int d_chain = core.getRelationDistance(alice, dave);
-            cout << "   -> Alice 和 Dave 的距离: " << d_chain << " (预期: -1, 链路断裂)" << endl;
-            
-        } else {
-            cout << "❌ 删除失败 (Status: " << status << ")" << endl;
+            // 再次打印确认存在
+            // cout << p->comment_list << endl; 
         }
     }
 
-    // --- 场景三：重新连接与环路 ---
-    printSeparator("场景三：重新连接 (多路径)");
+    // ==========================================
+    // 场景三：哈夫曼压缩分析
+    // ==========================================
+    printSeparator("场景三：哈夫曼压缩算法分析");
     
-    if (alice && charlie && eve) {
-        cout << "建立新关系: [Alice] --friend--> [Eve] --friend--> [Charlie]" << endl;
-        core.makeFriend(alice, eve);
-        core.makeFriend(eve, charlie);
+    if (frank) {
+        string longContent = "数据结构是计算机存储、组织数据的方式。数据结构是指相互之间存在一种或多种特定关系的数据元素的集合。通常情况下，精心选择的数据结构可以带来更高的运行或者存储效率。数据结构往往同高效的检索算法和索引技术有关。";
+        cout << ">>> Frank 发布了一篇长科普文..." << endl;
+        core.userAddPost(frank, "什么是数据结构", longContent);
         
-        // 现在 Alice 可以通过 Eve 到达 Charlie (距离2)
-        // Alice -> Eve -> Charlie -> Dave (距离3)
+        Post* techPost = &frank->posts.tail_ptr()->data;
         
-        int d_new = core.getRelationDistance(alice, dave);
-        cout << "\n[验证] Alice 和 Dave 的新距离: " << d_new << " (预期: 3, 路径: Alice->Eve->Charlie->Dave)" << endl;
-        
-        if (d_new == 3) {
-            cout << "✅ 社交图谱路径计算正确 (BFS 找到了绕行路径)。" << endl;
-        } else {
-            cout << "❌ 路径计算错误。" << endl;
-        }
+        // 调用核心分析功能
+        core.analyzePostContent(techPost);
     }
 
-    // 保存数据
-    cout << "\n>>> 正在保存数据... <<<" << endl;
+    // ==========================================
+    // 场景四：社交图谱与六度分隔
+    // ==========================================
+    printSeparator("场景四：社交网络连通性 (Six Degrees)");
+
+    if (alice && bob && charlie && dave && eve) {
+        cout << "构建好友链: Alice <-> Bob <-> Charlie <-> Dave" << endl;
+        core.makeFriend(alice, bob);
+        core.makeFriend(bob, charlie);
+        core.makeFriend(charlie, dave);
+        
+        // 制造一个“孤岛”或者远端用户 Eve
+        cout << "Eve 暂时是孤立的。" << endl;
+
+        int dist = core.getRelationDistance(alice, dave);
+        cout << "[测试] Alice 到 Dave 的距离: " << dist << " (预期: 3)" << endl;
+
+        int distEve = core.getRelationDistance(alice, eve);
+        cout << "[测试] Alice 到 Eve 的距离: " << distEve << " (预期: -1)" << endl;
+
+        cout << "\n>>> 让 Eve 连接到网络 (Dave <-> Eve)..." << endl;
+        core.makeFriend(dave, eve);
+        
+        int newDist = core.getRelationDistance(alice, eve);
+        cout << "[测试] Alice 到 Eve 的新距离: " << newDist << " (预期: 4)" << endl;
+    }
+
+    // ==========================================
+    // 结束：保存数据
+    // ==========================================
+    printSeparator("测试结束：数据保存");
+    cout << ">>> 正在将所有数据（用户、帖子、评论、关系图）写入磁盘..." << endl;
     if (core.saveData()) {
-        cout << "[系统] 数据保存成功。" << endl;
+        cout << "✅ [成功] 数据已保存至 data/clients.json" << endl;
     } else {
-        cout << "[错误] 保存失败。" << endl;
+        cout << "❌ [失败] 数据保存遇到错误。" << endl;
     }
 
     return 0;

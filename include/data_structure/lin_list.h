@@ -11,9 +11,11 @@ class LinearList {
 public:
     LinearList() {};
     virtual ~LinearList() {}; // 虚析构函数，确保子类析构被调用
-    virtual bool empty() = 0; 
-    virtual bool full() = 0; 
-    virtual int size() = 0; 
+
+    virtual bool empty() const = 0; 
+    virtual bool full() const = 0; 
+    virtual int size() const = 0; 
+    
     virtual bool insert(int index, const T& x) = 0; 
     virtual bool add(const T& x) = 0; 
     virtual bool remove(int index) = 0; 
@@ -33,14 +35,16 @@ public:
         delete[] data;
     }
 
-    int search(const T& x) {
+
+    int search(const T& x) const {
         for (int i = 0; i < length; i++) {
             if (data[i] == x) return i;
         }
         return -1; 
     }
 
-    int search(const T* x) {
+
+    int search(const T* x) const {
         for (int i = 0; i < length; i++) {
             if (data[i] == *x) return i;
         }
@@ -68,9 +72,10 @@ public:
         return *this;
     }
 
-    bool empty() override { return length == 0; }
-    bool full() override { return length >= maxSize; }
-    int size() override { return length; }
+
+    bool empty() const override { return length == 0; }
+    bool full() const override { return length >= maxSize; }
+    int size() const override { return length; }
 
     bool insert(int index, const T& x) override {
         if(!index_safe(index) && index != 0) return false;
@@ -111,9 +116,18 @@ public:
         return true;
     }
     
-    bool index_safe(int index) { return index >= 0 && index < length; }
+
+    bool index_safe(int index) const { return index >= 0 && index < length; }
     
+    // 读写版本
     T& operator[](int index) {
+        if (!index_safe(index)) {
+            throw std::out_of_range("Index不在范围内");
+        }
+        return data[index];
+    }
+
+    const T& operator[](int index) const {
         if (!index_safe(index)) {
             throw std::out_of_range("Index不在范围内");
         }
@@ -308,13 +322,27 @@ public:
         return true;
     }
 
-    bool empty() override {return length == 0;}
-    bool full() override {return false;}
-    int size() override {return length;}
+ 
+    bool empty() const override {return length == 0;}
+    bool full() const override {return false;}
+    int size() const override {return length;}
     
-    bool index_safe(int index){return index >= 0 && index < length;};
+
+    bool index_safe(int index) const {return index >= 0 && index < length;};
     
+    // 读写版本
     T& operator[](int index) {
+        if (!index_safe(index)) {
+            throw std::out_of_range("Index不在范围内");
+        }
+        ListNode<T>* current = head;
+        for(int i = 0; i < index; i++) {
+            current = current->next;
+        }
+        return current->data;
+    }
+
+    const T& operator[](int index) const {
         if (!index_safe(index)) {
             throw std::out_of_range("Index不在范围内");
         }

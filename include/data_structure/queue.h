@@ -103,7 +103,6 @@ public:
         clear();
     }
 
-    // --- [新增] 拷贝构造函数 ---
     LinkQueue(const LinkQueue& other) : Front(nullptr), Rear(nullptr), length(0) {
         QNode<T>* current = other.Front;
         while (current) {
@@ -112,7 +111,6 @@ public:
         }
     }
 
-    // --- [新增] 赋值运算符 ---
     LinkQueue& operator=(const LinkQueue& other) {
         if (this == &other) return *this;
         clear();

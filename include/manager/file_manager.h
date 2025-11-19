@@ -2,6 +2,7 @@
 #define FILE_MANAGER_H
 
 #include "data_structure/lin_list.h"
+#include "models/social_graph.h" // 引入图结构
 #include <string>
 
 class Client; // 前向声明
@@ -16,8 +17,8 @@ public:
         return instance;
     }
 
-    bool save(SeqList<Client>& clients);
-    bool load(SeqList<Client>& clients);
+    bool save(SeqList<Client>& clients, SocialGraph& graph);
+    bool load(SeqList<Client>& clients, SocialGraph& graph);
 
 private:
     FileManager() = default;
@@ -29,6 +30,13 @@ private:
     };
     LinkList<TempPostLikers> temp_liker_links;
 
+    // 临时结构：用于存储“用户-好友ID列表”的关系
+    struct TempFriendships {
+        std::string user_id;
+        LinkList<std::string> friend_ids;
+    };
+    LinkList<TempFriendships> temp_friend_links;
+
     // JSON 辅助函数
     std::string escapeJsonString(const std::string& s);
     std::string unescapeJsonString(const std::string& s);
@@ -39,6 +47,8 @@ private:
     // 查找辅助
     Client* findClient(SeqList<Client>& clients, const std::string& id);
     Post* findPost(SeqList<Client>& clients, const std::string& globalId);
+    //获取用户索引的辅助函数
+    int getClientIndex(SeqList<Client>& clients, Client* c);
 };
 
 #endif

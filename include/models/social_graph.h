@@ -28,6 +28,8 @@ public:
     int indexWithMaxDegree() const;
     // BFS 计算最短路径，结果写入 path，成功返回 true
     bool shortestPath(int start, int target, LinkList<int>& path) const;
+    // 获取指定顶点的邻接表（好友索引列表）指针，如果顶点非法，返回 nullptr，用于数据保存
+    const LinkList<int>* getNeighbors(int u) const;
 
 private:
     bool validVertex(int v) const;

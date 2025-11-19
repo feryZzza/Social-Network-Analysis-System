@@ -6,11 +6,16 @@
 using namespace std;
 
 bool Core::loadData() {//调用文件管理器加载数据
-    return FileManager::instance().load(all_clients);
+
+    bool success = FileManager::instance().load(all_clients, social_net);
+    if(success) {
+        rebuildIndex(); // 别忘了重建索引
+    }
+    return success;
 }
 
 bool Core::saveData() {//调用文件管理器保存数据
-    return FileManager::instance().save(all_clients);
+    return FileManager::instance().save(all_clients, social_net);
 }
 
 void Core::rebuildIndex() {
@@ -65,7 +70,8 @@ CoreStatus Core::registerClient(const std::string& name, const std::string& id, 
     // 插入索引,更新平衡树
     Client* ptr = &all_clients[all_clients.size() - 1];
     client_index.insert(AVL_node(ptr));
-
+    
+    
     return SUCCESS;
 }
 
