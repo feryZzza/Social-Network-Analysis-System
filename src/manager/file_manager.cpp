@@ -175,6 +175,23 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
             }
         }
     }
+    out << "\n  ],\n";
+
+    out << "  \"friendships\": [\n";
+    bool firstRelation = true;
+    for (int i = 0; i < clients.size(); ++i) {
+        Client& c = clients[i];
+        LinkList<Client*>& friends = c.getFriends();
+        for (int j = 0; j < friends.size(); ++j) {
+            Client* f = friends[j];
+            if (!f) continue;
+            if (c.ID() >= f->ID()) continue; // 避免重复记录
+            if (!firstRelation) out << ",\n";
+            out << "    { \"a\": \"" << escapeJsonString(c.ID()) << "\", "
+                << "\"b\": \"" << escapeJsonString(f->ID()) << "\" }";
+            firstRelation = false;
+        }
+    }
     out << "\n  ]\n";
 
     out << "}";
@@ -399,10 +416,42 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
     // --- 5. 链接点赞 ---
     for(int i=0; i<temp_liker_links.size(); ++i) {
         TempPostLikers& tpl = temp_liker_links[i];
+        int linkedCount = 0;
         for(int j=0; j<tpl.liker_ids.size(); ++j) {
             Client* liker = findClient(clients, tpl.liker_ids[j]);
             if(liker) {
                 tpl.post_ptr->get_likes_list().add(liker);
+                linkedCount++;
+            }
+        }
+        tpl.post_ptr->set_likes(linkedCount);
+    }
+    
+    size_t friendsKey = json.find("\"friendships\":");
+    if (friendsKey != string::npos) {
+        size_t arrStart = json.find("[", friendsKey);
+        size_t arrEnd = json.find("]", arrStart);
+        if (arrStart != string::npos && arrEnd != string::npos) {
+            int pos = arrStart + 1;
+            while (true) {
+                size_t objStart = json.find("{", pos);
+                if (objStart == string::npos || objStart > arrEnd) break;
+                int localPos = static_cast<int>(objStart);
+                string aid = extractValue(json, "a", localPos);
+                string bid = extractValue(json, "b", localPos);
+                Client* ca = findClient(clients, aid);
+                Client* cb = findClient(clients, bid);
+                if (ca && cb && ca != cb) {
+                    if (!ca->hasFriend(cb)) {
+                        ca->addFriendLink(cb);
+                    }
+                    if (!cb->hasFriend(ca)) {
+                        cb->addFriendLink(ca);
+                    }
+                }
+                size_t objEnd = json.find("}", objStart);
+                if (objEnd == string::npos) break;
+                pos = static_cast<int>(objEnd + 1);
             }
         }
     }

@@ -30,6 +30,7 @@ public:
     int likes_num() const { return likes; }
     void increment_likes() { likes++; }
     void decrement_likes() { likes--; }
+    void set_likes(int value) { likes = value; }
 
     // --- 评论管理 ---
     LinkList<Comment> comment_list;

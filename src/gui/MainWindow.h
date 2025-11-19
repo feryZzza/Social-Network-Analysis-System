@@ -1,0 +1,78 @@
+#ifndef GUI_MAINWINDOW_H
+#define GUI_MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QListWidget>
+#include <QTextEdit>
+#include <QLabel>
+#include <QPushButton>
+
+#include "manager/core.h"
+
+class AddPostDialog;
+
+class MainWindow : public QMainWindow {
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget* parent = nullptr);
+
+private slots:
+    void onClientSelectionChanged();
+    void onPostSelectionChanged();
+    void handleLoadData();
+    void handleSaveData();
+    void handleRegisterClient();
+    void handleOpenAddPostDialog();
+    void handleDeletePost();
+    void handleLikePost();
+    void handleAddComment();
+    void handleUndo();
+    void handleReadMessages();
+    void handleRefresh();
+    void handleAddFriend();
+    void handleRemoveFriend();
+
+private:
+    void buildUi();
+    void refreshClients();
+    void refreshPosts();
+    void refreshFriends();
+    void updateCurrentClientLabel();
+    QString makePostKey(Client* owner, const Post& post) const;
+    bool decodePostKey(const QString& key, QString& ownerId, int& idex) const;
+    Post* resolvePostFromItem(QListWidgetItem* item) const;
+    Post* findPost(const QString& ownerId, int idex) const;
+    void showPostDetails(Post* post);
+    void refreshComments(Post* post);
+    void showStatusMessage(const QString& message, bool isError = false);
+    void updateActionButtons();
+    CoreStatus requireActiveClient() const;
+    QString describeMessage(massege* msg) const;
+    void applyTheme();
+
+    Core& core;
+    Client* currentClient = nullptr;
+
+    QListWidget* clientList = nullptr;
+    QListWidget* postList = nullptr;
+    QListWidget* commentList = nullptr;
+    QListWidget* friendList = nullptr;
+    QLabel* postTitleLabel = nullptr;
+    QLabel* postMetaLabel = nullptr;
+    QLabel* postStatsLabel = nullptr;
+    QTextEdit* postContentView = nullptr;
+    QTextEdit* commentInput = nullptr;
+    QLabel* currentUserLabel = nullptr;
+
+    QPushButton* addPostButton = nullptr;
+    QPushButton* deletePostButton = nullptr;
+    QPushButton* likePostButton = nullptr;
+    QPushButton* addCommentButton = nullptr;
+    QPushButton* undoButton = nullptr;
+    QPushButton* readMessagesButton = nullptr;
+    QPushButton* addFriendButton = nullptr;
+    QPushButton* removeFriendButton = nullptr;
+};
+
+#endif // GUI_MAINWINDOW_H

@@ -41,6 +41,11 @@ public:
     // --- 容器访问 (供 Core 使用) ---
     LinkList<Post> posts; // 帖子列表
 
+    LinkList<Client*>& getFriends() { return friends; }
+    bool hasFriend(Client* other);
+    void addFriendLink(Client* other);
+    bool removeFriendLink(Client* other);
+
     // --- Undo 系统支持 ---
     bool a_stack_full() { return a_stack.full(); }
     int action_num() { return a_stack.size(); }
