@@ -27,6 +27,7 @@ public:
     int PostTime() const { return post_time; }
     void setPostTime(int t) { post_time = t; }
     void incrementPostTime() { post_time++; }
+    int get_friends_num() const { return friends_num; }
 
     // --- 状态修改 (仅限基础计数) ---
     void receive_comment(bool add) {

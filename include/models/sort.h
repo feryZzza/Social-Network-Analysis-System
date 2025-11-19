@@ -40,3 +40,5 @@ void ShiyingSort(SeqList<T>& arr, bool (*count)(const T& a, const T& b));
 // 排行榜核心函数前置声明
 void haoyoushu(SeqList<Client>& clients);
 void dianzanshu(SeqList<Client>& users);
+
+#endif
