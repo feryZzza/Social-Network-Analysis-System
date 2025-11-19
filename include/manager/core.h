@@ -26,7 +26,8 @@ enum CoreStatus {
     ERR_ACTION_INVALID,
     ERR_UNKNOWN,
     ERR_ALREADY_FRIENDS,
-    ERR_SELF_FRIEND 
+    ERR_NOT_FRIENDS,
+    ERR_SELF_RELATION 
 };
 class AVL_node {
 public:
@@ -93,6 +94,7 @@ public:
     SeqList<Client>& getAllClients() { return all_clients; }
     
     Client* getClientByName(const std::string& name);
+    Client* getClientById(const std::string& id);
 
 
 
@@ -123,7 +125,6 @@ public:
     // 用户读取消息
     void userReadMessages(Client* client);
 
-<<<<<<< HEAD
     // 用户加好友
     CoreStatus makeFriend(Client* a, Client* b);
 
@@ -133,13 +134,11 @@ public:
     // 获取两用户在社交图中的关系距离
     int getRelationDistance(Client* a, Client* b);
 
-=======
     // 好友关系
     CoreStatus addFriendship(Client* a, Client* b);
     CoreStatus removeFriendship(Client* a, Client* b);
 
     // --- [新增] 高级功能：内容分析与压缩预览 ---
->>>>>>> 10fbe29 (GUI优化，船新的版本)
     // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压
     void analyzePostContent(Post* post);
 };

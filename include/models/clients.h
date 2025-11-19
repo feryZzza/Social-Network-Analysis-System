@@ -78,5 +78,6 @@ private:
     int likes_received = 0;
     int comments_received = 0;
     int friends_num = 0;//好友数
+    LinkList<Client*> friends;
 };
 #endif

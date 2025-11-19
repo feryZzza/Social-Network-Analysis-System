@@ -29,7 +29,7 @@ void Core::rebuildIndex() {
 }
 
 int Core::getClientIndex(Client* c) {
-    if (!c) return -1;
+    if (!c || all_clients.size() == 0) return -1;
     // 获取数组首地址
     Client* base = &all_clients[0];
     // 计算偏移量
@@ -53,6 +53,15 @@ Client* Core::getClientByName(const std::string& name) {
         return node->data.client;
     }
     // 没找到
+    return nullptr;
+}
+
+Client* Core::getClientById(const std::string& id) {
+    for (int i = 0; i < all_clients.size(); ++i) {
+        if (all_clients[i].ID() == id) {
+            return &all_clients[i];
+        }
+    }
     return nullptr;
 }
 
@@ -260,7 +269,8 @@ void Core::userReadMessages(Client* client) {
 
 CoreStatus Core::makeFriend(Client* a, Client* b) {
     if (!a || !b) return ERR_CLIENT_NOT_FOUND;
-    if (a == b) return ERR_SELF_FRIEND;
+    if (a == b) return ERR_SELF_RELATION;
+    if (a->hasFriend(b)) return ERR_ALREADY_FRIENDS;
 
     int idxA = getClientIndex(a);
     int idxB = getClientIndex(b);
@@ -270,13 +280,16 @@ CoreStatus Core::makeFriend(Client* a, Client* b) {
     social_net.addEdge(idxA, idxB);
     this->all_clients[idxA].make_friend(true);
     this->all_clients[idxB].make_friend(true);
+    a->addFriendLink(b);
+    b->addFriendLink(a);
     
     return SUCCESS;
 }
 
 CoreStatus Core::deleteFriend(Client* a, Client* b) {
     if (!a || !b) return ERR_CLIENT_NOT_FOUND;
-    if (a == b) return ERR_SELF_FRIEND;
+    if (a == b) return ERR_SELF_RELATION;
+    if (!a->hasFriend(b)) return ERR_NOT_FRIENDS;
 
     int idxA = getClientIndex(a);
     int idxB = getClientIndex(b);
@@ -286,6 +299,8 @@ CoreStatus Core::deleteFriend(Client* a, Client* b) {
     social_net.removeEdge(idxA, idxB);
     this->all_clients[idxA].make_friend(false);
     this->all_clients[idxB].make_friend(false);
+    a->removeFriendLink(b);
+    b->removeFriendLink(a);
     
     return SUCCESS;
 }
@@ -306,6 +321,14 @@ int Core::getRelationDistance(Client* a, Client* b) {
     }
     
     return -1; // 不连通
+}
+
+CoreStatus Core::addFriendship(Client* a, Client* b) {
+    return makeFriend(a, b);
+}
+
+CoreStatus Core::removeFriendship(Client* a, Client* b) {
+    return deleteFriend(a, b);
 }
 
 

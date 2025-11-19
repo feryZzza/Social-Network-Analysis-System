@@ -54,29 +54,9 @@
   ],
   "comments": [
     {
-<<<<<<< HEAD
       "post_global_id": "id_001_2",
       "author_id": "id_002",
       "content": "确实，特别是链表指针，令人头秃。",
-=======
-      "post_global_id": "spammer_1",
-      "author_id": "spammer",
-      "content": "wawaaw",
-      "floor": 2,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "spammer_1",
-      "author_id": "diver",
-      "content": "waaw",
-      "floor": 3,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "ghost_1",
-      "author_id": "admin",
-      "content": "我利用系统漏洞看到了这条被删的帖子！",
->>>>>>> 10fbe29 (GUI优化，船新的版本)
       "floor": 2,
       "reply_floor": -1
     },
