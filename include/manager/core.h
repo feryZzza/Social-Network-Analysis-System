@@ -11,6 +11,7 @@
 #include "manager/file_manager.h"
 #include "data_structure/huffman.h" // 引入哈夫曼模块
 #include "data_structure/search_tree.h" // 引入搜索树模块
+#include "models/social_graph.h"// 引入社交图模块
 #include <string>
 
 // 定义操作状态码
@@ -23,9 +24,10 @@ enum CoreStatus {
     ERR_COMMENT_NOT_FOUND,
     ERR_NO_ACTION_TO_UNDO, 
     ERR_ACTION_INVALID,
-    ERR_UNKNOWN
+    ERR_UNKNOWN,
+    ERR_ALREADY_FRIENDS,
+    ERR_SELF_FRIEND 
 };
-
 class AVL_node {
 public:
     std::string name; // 存储名字副本，用于比较键
@@ -60,6 +62,8 @@ private:
 
     SeqList<Client> all_clients; // 系统维护的所有客户端数据
     AVLTree<AVL_node> client_index; // 使用 AVL_node 作为索引元素
+    SocialGraph social_net;// 社交图对象
+
     bool is_avl_init = false; //平衡树是否初始化 
     
     // 单例模式
@@ -74,6 +78,8 @@ private:
 
     void rebuildIndex();
 
+    int getClientIndex(Client* c);// 获取用户在线性表中的索引位置,利用了指针的连续性
+
 public:
     static Core& instance() {
         static Core instance; 
@@ -87,6 +93,8 @@ public:
     SeqList<Client>& getAllClients() { return all_clients; }
     
     Client* getClientByName(const std::string& name);
+
+
 
     // --- 业务功能 ---
 
@@ -115,7 +123,15 @@ public:
     // 用户读取消息
     void userReadMessages(Client* client);
 
-    // --- [新增] 高级功能：内容分析与压缩预览 ---
+    // 用户加好友
+    CoreStatus makeFriend(Client* a, Client* b);
+
+    // 用户删好友
+    CoreStatus deleteFriend(Client* a, Client* b);
+
+    // 获取两用户在社交图中的关系距离
+    int getRelationDistance(Client* a, Client* b);
+
     // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压
     void analyzePostContent(Post* post);
 };

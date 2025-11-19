@@ -18,6 +18,8 @@ public:
     void resize(std::size_t vertexCount);
     // 添加无向边（好友关系）
     void addEdge(int u, int v);
+    // 移除无向边
+    void removeEdge(int u, int v);
     // 获取顶点数量
     std::size_t vertexCount() const;
     // 获取指定顶点的度

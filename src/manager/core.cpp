@@ -23,6 +23,19 @@ void Core::rebuildIndex() {
     }
 }
 
+int Core::getClientIndex(Client* c) {
+    if (!c) return -1;
+    // 获取数组首地址
+    Client* base = &all_clients[0];
+    // 计算偏移量
+    long long diff = c - base; 
+    // 检查是否在合法范围内
+    if (diff >= 0 && diff < all_clients.size()) {
+        return (int)diff;
+    }
+    return -1;
+}
+
 Client* Core::getClientByName(const std::string& name) {
     // 构造一个临时的 AVL_node 用于查找
     AVL_node target(name, nullptr);
@@ -128,24 +141,23 @@ CoreStatus Core::userAddComment(Client* commenter, Post* post, const std::string
     if (!commenter) return ERR_CLIENT_NOT_FOUND;
     if (!post) return ERR_POST_NOT_FOUND;
 
-    // 1. 构建评论
+    // 构建评论
     Comment c(commenter, content, reply_floor);
     int new_floor = post->get_floor() + 1;
     c.set_floor(new_floor);
-    
-    // 2. 数据层添加
+    // 数据层添加
     post->comment_list.add(c);
     post->set_floor(new_floor);
 
     commenter->receive_comment(true);
 
-    // 3. 注册撤销操作
+    //注册撤销操作
     CommentAction* action = new CommentAction(post->comment_list.tail_ptr());
     action->init(commenter, true, post);
     UndoManager::instance().register_action(post, action);
     pushAction(commenter, action);
 
-    // 4. 发送消息
+    //发送消息
     CommentMassege* m = new CommentMassege(&post->comment_list.tail_ptr()->data);
     m->init(commenter, post->author, post);
     sendMessage(commenter, post->author, post, m);
@@ -239,6 +251,59 @@ void Core::userReadMessages(Client* client) {
         delete m;
     }
 }
+
+CoreStatus Core::makeFriend(Client* a, Client* b) {
+    if (!a || !b) return ERR_CLIENT_NOT_FOUND;
+    if (a == b) return ERR_SELF_FRIEND;
+
+    int idxA = getClientIndex(a);
+    int idxB = getClientIndex(b);
+
+    if (idxA == -1 || idxB == -1) return ERR_UNKNOWN;
+
+    social_net.addEdge(idxA, idxB);
+    this->all_clients[idxA].make_friend(true);
+    this->all_clients[idxB].make_friend(true);
+    
+    return SUCCESS;
+}
+
+CoreStatus Core::deleteFriend(Client* a, Client* b) {
+    if (!a || !b) return ERR_CLIENT_NOT_FOUND;
+    if (a == b) return ERR_SELF_FRIEND;
+
+    int idxA = getClientIndex(a);
+    int idxB = getClientIndex(b);
+
+    if (idxA == -1 || idxB == -1) return ERR_UNKNOWN;
+
+    social_net.removeEdge(idxA, idxB);
+    this->all_clients[idxA].make_friend(false);
+    this->all_clients[idxB].make_friend(false);
+    
+    return SUCCESS;
+}
+
+// 计算社交距离
+int Core::getRelationDistance(Client* a, Client* b) {
+    if (!a || !b) return -1;
+    if (a == b) return 0;
+
+    int idxA = getClientIndex(a);
+    int idxB = getClientIndex(b);
+    
+    if (idxA == -1 || idxB == -1) return -1;
+
+    LinkList<int> path;
+    if (social_net.shortestPath(idxA, idxB, path)) {
+        // path 包含从 start 到 target 的所有节点，包括 start 和 target
+        // 距离 = 节点数 - 1
+        return path.size() - 1;
+    }
+    
+    return -1; // 不连通
+}
+
 
 //内嵌哈夫曼编码对帖子内容进行深度分析，展示压缩效果
 void Core::analyzePostContent(Post* post) {

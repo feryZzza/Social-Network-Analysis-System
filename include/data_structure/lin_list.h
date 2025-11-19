@@ -33,7 +33,21 @@ public:
         delete[] data;
     }
 
-    // --- [新增] 拷贝构造函数 (深拷贝) ---
+    int search(const T& x) {
+        for (int i = 0; i < length; i++) {
+            if (data[i] == x) return i;
+        }
+        return -1; 
+    }
+
+    int search(const T* x) {
+        for (int i = 0; i < length; i++) {
+            if (data[i] == *x) return i;
+        }
+        return -1; 
+    }
+
+
     SeqList(const SeqList<T>& other) : maxSize(other.maxSize), length(other.length) {
         data = new T[maxSize];
         for (int i = 0; i < length; i++) {
@@ -41,7 +55,6 @@ public:
         }
     }
 
-    // --- [新增] 赋值运算符 (深拷贝) ---
     SeqList<T>& operator=(const SeqList<T>& other) {
         if (this == &other) return *this;
         delete[] data; // 释放旧内存

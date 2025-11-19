@@ -54,6 +54,26 @@ void SocialGraph::addEdge(int u, int v) {
     }
 }
 
+void SocialGraph::removeEdge(int u, int v) {
+    if (!validVertex(u) || !validVertex(v) || userForm == nullptr) {
+        return;
+    }
+    LinkList<int>& neighborsU = (*userForm)[u];
+    for (int i = 0; i < neighborsU.size(); ++i) {
+        if (neighborsU[i] == v) {
+            neighborsU.remove(i);
+            break; 
+        }
+    }
+    LinkList<int>& neighborsV = (*userForm)[v];
+    for (int i = 0; i < neighborsV.size(); ++i) {
+        if (neighborsV[i] == u) {
+            neighborsV.remove(i);
+            break;
+        }
+    }
+}
+
 std::size_t SocialGraph::vertexCount() const {
     return vertex_count_;
 }

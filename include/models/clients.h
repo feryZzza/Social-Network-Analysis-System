@@ -33,6 +33,10 @@ public:
         if(add) comments_received++;
         else comments_received--;
     }
+    void make_friend(bool add) {
+        if(add) friends_num++;
+        else friends_num--;
+    }
 
     // --- 容器访问 (供 Core 使用) ---
     LinkList<Post> posts; // 帖子列表
@@ -68,5 +72,6 @@ private:
     LinkQueue<massege*> m_q;     // 消息队列
     int likes_received = 0;
     int comments_received = 0;
+    int friends_num = 0;//好友数
 };
 #endif
