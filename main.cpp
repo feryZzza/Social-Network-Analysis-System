@@ -20,7 +20,7 @@ void checkInbox(Client* c) {
 }
 
 int main() {
-    printSeparator("社交网络管理系统 - 全功能集成测试");
+    printSeparator("社交网络管理系统 - 全功能集成测试 (Name Unique Version)");
 
     Core& core = Core::instance();
 
@@ -35,23 +35,30 @@ int main() {
     }
 
     // 如果是空环境，注册测试用户
+    // 演示：ID 不再需要固定格式，Name 必须唯一
     if (core.getAllClients().empty()) {
         cout << "\n[Init] 正在注册基础用户群..." << endl;
-        core.registerClient("Alice", "id_001", "pass1");
-        core.registerClient("Bob", "id_002", "pass2");
-        core.registerClient("Charlie", "id_003", "pass3");
-        core.registerClient("Dave", "id_004", "pass4");
-        core.registerClient("Eve", "id_005", "pass5");
-        core.registerClient("Frank", "id_006", "pass6"); 
+        core.registerClient("Alice", "alice_id_any_format", "pass1");
+        core.registerClient("Bob", "bob@email.com", "pass2");     // ID 可以是邮箱格式
+        core.registerClient("Charlie", "+8613800000000", "pass3"); // ID 可以是电话格式
+        core.registerClient("Dave", "uid_9999", "pass4");
+        core.registerClient("Eve", "just_a_random_string", "pass5");
+        core.registerClient("Frank", "frank_official", "pass6"); 
+        cout << "[Init] 注册完成。当前系统使用 [Name] 作为唯一索引。" << endl;
     }
     
-    // 获取用户指针 (用于后续测试)
+    // 获取用户指针 (核心逻辑：通过 Name 查找)
     Client* alice = core.getClientByName("Alice");
     Client* bob = core.getClientByName("Bob");
     Client* charlie = core.getClientByName("Charlie");
     Client* dave = core.getClientByName("Dave");
     Client* eve = core.getClientByName("Eve");
     Client* frank = core.getClientByName("Frank");
+
+    if (!alice) {
+        cout << "[错误] 无法获取测试用户，请检查数据加载或注册流程。" << endl;
+        return -1;
+    }
 
     // ==========================================
     // 场景零：验证持久化 (如果是第二次运行)
@@ -84,13 +91,13 @@ int main() {
         Post* alicePost = &alice->posts.tail_ptr()->data; // 获取刚发的帖子
         
         // 2. Bob 点赞并评论
-        cout << ">>> Bob 点赞并评论了 Alice..." << endl;
+        cout << ">>> Bob (" << bob->ID() << ") 点赞并评论了 Alice..." << endl;
         core.userLikePost(bob, alicePost);
         core.userAddComment(bob, alicePost, "确实，特别是链表指针，令人头秃。", -1); // -1 表示直接回复帖子
 
         // 3. Charlie 回复 Bob (楼中楼)
         // 假设 Bob 的评论是第 2 楼 (1楼是帖子本身)
-        cout << ">>> Charlie 回复了 Bob 的评论 (楼中楼)..." << endl;
+        cout << ">>> Charlie (" << charlie->ID() << ") 回复了 Bob 的评论 (楼中楼)..." << endl;
         int bobFloor = alicePost->comment_list.tail_ptr()->data.floor(); // 获取Bob评论的楼层
         core.userAddComment(charlie, alicePost, "同感，Segment Fault 才是永远的朋友。", bobFloor);
 

@@ -1,6 +1,6 @@
 #include "MainWindow.h"
-
 #include "AddPostDialog.h"
+
 #include <QAbstractItemView>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -13,13 +13,15 @@
 #include <QTextCursor>
 #include <QVector>
 #include <QVBoxLayout>
+#include <QListWidgetItem>
+#include <string>
 
 namespace {
 
 QString statusToText(CoreStatus status) {
     switch (status) {
     case SUCCESS: return QObject::tr("操作成功");
-    case ERR_CLIENT_EXISTS: return QObject::tr("用户已存在");
+    case ERR_CLIENT_EXISTS: return QObject::tr("用户已存在 (昵称冲突)"); // 明确提示是昵称冲突
     case ERR_LIST_FULL: return QObject::tr("用户列表已满");
     case ERR_CLIENT_NOT_FOUND: return QObject::tr("未找到用户");
     case ERR_POST_NOT_FOUND: return QObject::tr("未找到帖子");
@@ -27,8 +29,6 @@ QString statusToText(CoreStatus status) {
     case ERR_NO_ACTION_TO_UNDO: return QObject::tr("没有可撤销的操作");
     case ERR_ACTION_INVALID: return QObject::tr("操作已失效");
     case ERR_ALREADY_FRIENDS: return QObject::tr("已经是好友了");
-    case ERR_NOT_FRIENDS: return QObject::tr("尚未建立好友关系");
-    case ERR_SELF_RELATION: return QObject::tr("不能与自己建立关系");
     case ERR_SELF_FRIEND: return QObject::tr("不能添加自己为好友");
     default: return QObject::tr("未知错误");
     }
@@ -38,7 +38,7 @@ QString statusToText(CoreStatus status) {
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
-    , core(Core::instance()) {
+    , core(Core::instance()) { 
     setWindowTitle(tr("社交网络管理系统 - Qt GUI"));
     resize(1280, 720);
     buildUi();
@@ -227,7 +227,7 @@ void MainWindow::buildUi() {
 }
 
 void MainWindow::refreshClients() {
-    QString activeName; // [修改] 保存当前选中的 Name
+    QString activeName; 
     if (currentClient) {
         activeName = QString::fromStdString(currentClient->Name());
     }
@@ -240,9 +240,10 @@ void MainWindow::refreshClients() {
         Client& client = clients[i];
         QString display = QString::fromStdString(client.Name() + " (" + client.ID() + ")");
         QListWidgetItem* item = new QListWidgetItem(display, clientList);
+        // 使用 Name 作为 Key
         QString name = QString::fromStdString(client.Name());
-        // [修改] 存储 Name 而不是 ID
         item->setData(Qt::UserRole, name);
+        
         if (!activeName.isEmpty() && name == activeName) {
             clientList->setCurrentItem(item);
             currentClient = &clients[i];
@@ -255,7 +256,7 @@ void MainWindow::refreshClients() {
 
 void MainWindow::refreshPosts() {
     QString currentKey;
-    if (auto* item = postList->currentItem()) {
+    if (QListWidgetItem* item = postList->currentItem()) {
         currentKey = item->data(Qt::UserRole).toString();
     }
 
@@ -310,7 +311,6 @@ void MainWindow::refreshFriends() {
             QString display =
                 QString::fromStdString(other->Name() + " (" + other->ID() + ")");
             QListWidgetItem* item = new QListWidgetItem(display, friendList);
-            // [修改] 存储 Name
             item->setData(Qt::UserRole, QString::fromStdString(other->Name()));
         }
     }
@@ -331,7 +331,7 @@ void MainWindow::updateCurrentClientLabel() {
 
 QString MainWindow::makePostKey(Client* owner, const Post& post) const {
     if (!owner) return {};
-    // [修改] 使用 Name 作为 Key 的一部分
+    // Key 使用 Name
     return QString::fromStdString(owner->Name()) + ":" + QString::number(post.get_idex());
 }
 
@@ -341,7 +341,7 @@ bool MainWindow::decodePostKey(const QString& key, QString& ownerName, int& idex
     bool ok = false;
     int parsed = parts[1].toInt(&ok);
     if (!ok) return false;
-    ownerName = parts[0]; // [修改] 解析出的是 Name
+    ownerName = parts[0];
     idex = parsed;
     return true;
 }
@@ -356,7 +356,6 @@ Post* MainWindow::resolvePostFromItem(QListWidgetItem* item) const {
 }
 
 Post* MainWindow::findPost(const QString& ownerName, int idex) const {
-    // [修改] 使用 core.getClientByName
     Client* client = core.getClientByName(ownerName.toStdString());
     if (!client) return nullptr;
     for (int i = 0; i < client->posts.size(); ++i) {
@@ -469,7 +468,6 @@ void MainWindow::onClientSelectionChanged() {
         return;
     }
     QString name = items.first()->data(Qt::UserRole).toString();
-    // [修改] 使用 core.getClientByName
     currentClient = core.getClientByName(name.toStdString());
     updateCurrentClientLabel();
     refreshFriends();
@@ -493,10 +491,10 @@ void MainWindow::handleSaveData() {
 
 void MainWindow::handleRegisterClient() {
     bool ok = false;
-    QString name = QInputDialog::getText(this, tr("注册用户"), tr("输入昵称："), QLineEdit::Normal, {}, &ok);
+    QString name = QInputDialog::getText(this, tr("注册用户"), tr("输入唯一昵称："), QLineEdit::Normal, {}, &ok);
     if (!ok || name.trimmed().isEmpty()) return;
-    QString id = QInputDialog::getText(this, tr("注册用户"), tr("输入唯一 ID："), QLineEdit::Normal, {}, &ok);
-    if (!ok || id.trimmed().isEmpty()) return;
+    QString id = QInputDialog::getText(this, tr("注册用户"), tr("输入 ID (可选)："), QLineEdit::Normal, {}, &ok);
+    if (!ok) return; 
     QString password = QInputDialog::getText(this, tr("注册用户"), tr("设置密码："), QLineEdit::Password, {}, &ok);
     if (!ok || password.trimmed().isEmpty()) return;
 
@@ -589,8 +587,7 @@ QString MainWindow::describeMessage(massege* msg) const {
     QString sender = msg->sender ? QString::fromStdString(msg->sender->Name()) : tr("未知用户");
     QString postTitle = msg->post ? QString::fromStdString(msg->post->get_title()) : tr("帖子");
 
-    if (auto* likeMsg = dynamic_cast<LikeMassege*>(msg)) {
-        Q_UNUSED(likeMsg);
+    if (dynamic_cast<LikeMassege*>(msg)) {
         return tr("%1 赞了你的帖子「%2」").arg(sender, postTitle);
     }
     if (auto* commentMsg = dynamic_cast<CommentMassege*>(msg)) {
@@ -630,31 +627,35 @@ void MainWindow::handleAddFriend() {
     if (requireActiveClient() != SUCCESS) return;
     SeqList<Client>& clients = core.getAllClients();
     QStringList options;
-    QVector<QString> optionNames; // [修改] 存储 Name
+    QVector<QString> optionNames; // 保存 Name 用于查找
+    
     for (int i = 0; i < clients.size(); ++i) {
         Client& candidate = clients[i];
         if (&candidate == currentClient) continue;
 
+        // 如果已经是好友则跳过
         if (core.getRelationDistance(currentClient, &candidate) == 1) continue;
         
         QString label =
             QString::fromStdString(candidate.Name() + " (" + candidate.ID() + ")");
         options << label;
-        optionNames << QString::fromStdString(candidate.Name()); // [修改] 存储 Name
+        optionNames.push_back(QString::fromStdString(candidate.Name()));
     }
+    
     if (options.isEmpty()) {
         showStatusMessage(tr("没有可添加的用户。"), true);
         return;
     }
+    
     bool ok = false;
     QString chosen = QInputDialog::getItem(this, tr("添加好友"), tr("选择用户："), options, 0,
                                            false, &ok);
     if (!ok || chosen.isEmpty()) return;
+    
     int index = options.indexOf(chosen);
     if (index < 0 || index >= optionNames.size()) return;
-    QString name = optionNames[index]; // [修改] 使用 Name
     
-    // [修改] 使用 core.getClientByName
+    QString name = optionNames[index];
     Client* other = core.getClientByName(name.toStdString());
     
     CoreStatus status = core.makeFriend(currentClient, other);
@@ -671,7 +672,6 @@ void MainWindow::handleRemoveFriend() {
         return;
     }
     QString name = friendList->currentItem()->data(Qt::UserRole).toString();
-    // [修改] 使用 core.getClientByName
     Client* other = core.getClientByName(name.toStdString());
     
     CoreStatus status = core.deleteFriend(currentClient, other);
@@ -707,11 +707,6 @@ QLabel#heroSubtitle {
     font-size: 13px;
     margin-bottom: 10px;
 }
-QLabel#kawaiiLabel {
-    color: #ff8fb1;
-    font-size: 13px;
-    font-weight: 600;
-}
 QLabel#currentUserLabel {
     font-weight: 600;
     color: #377dff;
@@ -730,10 +725,6 @@ QLabel#postStats {
     color: #377dff;
     font-weight: 600;
     margin-top: 6px;
-}
-QLabel#vibeLabel {
-    color: #ff8fb1;
-    font-weight: 600;
 }
 QGroupBox {
     background: #ffffff;

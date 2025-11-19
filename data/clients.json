@@ -1,113 +1,66 @@
 {
   "clients": [
-    { "name": "Alice", "id": "id_001", "password": "pass1", "post_time": 4 },
-    { "name": "Bob", "id": "id_002", "password": "pass2", "post_time": 0 },
-    { "name": "Charlie", "id": "id_003", "password": "pass3", "post_time": 0 },
-    { "name": "Dave", "id": "id_004", "password": "pass4", "post_time": 4 },
-    { "name": "Eve", "id": "id_005", "password": "pass5", "post_time": 0 },
-    { "name": "Frank", "id": "id_006", "password": "pass6", "post_time": 4 }
+    { "name": "Alice", "id": "alice_id_any_format", "password": "pass1", "post_time": 1 },
+    { "name": "Bob", "id": "bob@email.com", "password": "pass2", "post_time": 0 },
+    { "name": "Charlie", "id": "+8613800000000", "password": "pass3", "post_time": 0 },
+    { "name": "Dave", "id": "uid_9999", "password": "pass4", "post_time": 1 },
+    { "name": "Eve", "id": "just_a_random_string", "password": "pass5", "post_time": 0 },
+    { "name": "Frank", "id": "frank_official", "password": "pass6", "post_time": 1 }
   ],
   "social_graph": [
-    { "user_id": "id_001", "friends": ["id_002"] },
-    { "user_id": "id_002", "friends": ["id_001", "id_003"] },
-    { "user_id": "id_003", "friends": ["id_002", "id_004"] },
-    { "user_id": "id_004", "friends": ["id_003", "id_005"] },
-    { "user_id": "id_005", "friends": ["id_004"] }
+    { "user_name": "Alice", "friends": ["Bob"] },
+    { "user_name": "Bob", "friends": ["Alice", "Charlie"] },
+    { "user_name": "Charlie", "friends": ["Bob", "Dave"] },
+    { "user_name": "Dave", "friends": ["Charlie", "Eve"] },
+    { "user_name": "Eve", "friends": ["Dave"] }
   ],
   "posts": [
     {
-      "global_id": "id_001_1",
-      "author_id": "id_001",
+      "global_id": "Alice_1",
+      "author_name": "Alice",
       "title": "C++学习心得",
       "content": "手写数据结构真是太有趣了！(才怪)",
       "idex": 1,
       "floor": 4,
-      "likers": ["id_002"]
+      "likers": ["Bob"]
     },
     {
-      "global_id": "id_001_2",
-      "author_id": "id_001",
-      "title": "C++学习心得",
-      "content": "手写数据结构真是太有趣了！(才怪)",
-      "idex": 2,
-      "floor": 4,
-      "likers": ["id_002"]
-    },
-    {
-      "global_id": "id_001_3",
-      "author_id": "id_001",
-      "title": "C++学习心得",
-      "content": "手写数据结构真是太有趣了！(才怪)",
-      "idex": 3,
-      "floor": 4,
-      "likers": ["id_002"]
-    },
-    {
-      "global_id": "id_001_4",
-      "author_id": "id_001",
-      "title": "C++学习心得",
-      "content": "手写数据结构真是太有趣了！(才怪)",
-      "idex": 4,
-      "floor": 4,
-      "likers": ["id_002"]
-    },
-    {
-      "global_id": "id_006_1",
-      "author_id": "id_006",
+      "global_id": "Frank_1",
+      "author_name": "Frank",
       "title": "什么是数据结构",
       "content": "数据结构是计算机存储、组织数据的方式。数据结构是指相互之间存在一种或多种特定关系的数据元素的集合。通常情况下，精心选择的数据结构可以带来更高的运行或者存储效率。数据结构往往同高效的检索算法和索引技术有关。",
       "idex": 1,
-      "floor": 1,
-      "likers": []
-    },
-    {
-      "global_id": "id_006_2",
-      "author_id": "id_006",
-      "title": "什么是数据结构",
-      "content": "数据结构是计算机存储、组织数据的方式。数据结构是指相互之间存在一种或多种特定关系的数据元素的集合。通常情况下，精心选择的数据结构可以带来更高的运行或者存储效率。数据结构往往同高效的检索算法和索引技术有关。",
-      "idex": 2,
-      "floor": 1,
-      "likers": []
-    },
-    {
-      "global_id": "id_006_3",
-      "author_id": "id_006",
-      "title": "什么是数据结构",
-      "content": "数据结构是计算机存储、组织数据的方式。数据结构是指相互之间存在一种或多种特定关系的数据元素的集合。通常情况下，精心选择的数据结构可以带来更高的运行或者存储效率。数据结构往往同高效的检索算法和索引技术有关。",
-      "idex": 3,
-      "floor": 1,
-      "likers": []
-    },
-    {
-      "global_id": "id_006_4",
-      "author_id": "id_006",
-      "title": "什么是数据结构",
-      "content": "数据结构是计算机存储、组织数据的方式。数据结构是指相互之间存在一种或多种特定关系的数据元素的集合。通常情况下，精心选择的数据结构可以带来更高的运行或者存储效率。数据结构往往同高效的检索算法和索引技术有关。",
-      "idex": 4,
-      "floor": 1,
+      "floor": 2,
       "likers": []
     }
   ],
   "comments": [
     {
-      "post_global_id": "id_001_4",
-      "author_id": "id_002",
+      "post_global_id": "Alice_1",
+      "author_name": "Bob",
       "content": "确实，特别是链表指针，令人头秃。",
       "floor": 2,
       "reply_floor": -1
     },
     {
-      "post_global_id": "id_001_4",
-      "author_id": "id_003",
+      "post_global_id": "Alice_1",
+      "author_name": "Charlie",
       "content": "同感，Segment Fault 才是永远的朋友。",
       "floor": 3,
       "reply_floor": 2
     },
     {
-      "post_global_id": "id_001_4",
-      "author_id": "id_005",
+      "post_global_id": "Alice_1",
+      "author_name": "Eve",
       "content": "测试评论恢复功能",
       "floor": 4,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "Frank_1",
+      "author_name": "Charlie",
+      "content": "CNM",
+      "floor": 2,
       "reply_floor": -1
     }
   ]

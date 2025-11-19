@@ -39,10 +39,10 @@ string FileManager::unescapeJsonString(const string& s) {
     return res;
 }
 
-// 辅助查找 Client
-Client* FileManager::findClient(SeqList<Client>& clients, const std::string& id) {
+// 辅助查找 Client (现在通过 Name 查找)
+Client* FileManager::findClient(SeqList<Client>& clients, const std::string& name) {
     for(int i = 0; i < clients.size(); ++i) {
-        if(clients[i].ID() == id) return &clients[i];
+        if(clients[i].Name() == name) return &clients[i]; // 比较 Name
     }
     return nullptr;
 }
@@ -58,16 +58,17 @@ int FileManager::getClientIndex(SeqList<Client>& clients, Client* c) {
     return -1;
 }
 
-// 辅助查找 Post (globalId 格式: "clientId_postIndex")
+// 辅助查找 Post (globalId 格式: "clientName_postIndex")
 Post* FileManager::findPost(SeqList<Client>& clients, const std::string& globalId) {
-    size_t underscore = globalId.find('_');
+    // 使用 rfind 从右向左找，这样名字里带 '_' 也不怕，因为 index 肯定在最后
+    size_t underscore = globalId.rfind('_');
     if(underscore == string::npos) return nullptr;
     
-    string clientId = globalId.substr(0, underscore);
+    string clientName = globalId.substr(0, underscore);
     string indexStr = globalId.substr(underscore + 1);
     int index = stoi(indexStr);
     
-    Client* c = findClient(clients, clientId);
+    Client* c = findClient(clients, clientName);
     if(!c) return nullptr;
     
     // 遍历用户的帖子找到对应的 idex
@@ -85,7 +86,7 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
 
     out << "{\n";
 
-    // --- 1. 写入所有 Clients (纯净版，不含好友) ---
+    // --- 1. 写入所有 Clients ---
     out << "  \"clients\": [\n";
     for (int i = 0; i < clients.size(); ++i) {
         Client& c = clients[i];
@@ -99,22 +100,22 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
     }
     out << "  ],\n";
 
-    // --- 2. 独立写入 Social Graph ---
+    // --- 2. 独立写入 Social Graph (使用 user_name) ---
     out << "  \"social_graph\": [\n";
     bool firstGraphNode = true;
     for (int i = 0; i < clients.size(); ++i) {
         const LinkList<int>* neighbors = graph.getNeighbors(i);
-        // 只有当有好友时才记录，节省空间
         if (neighbors && !neighbors->empty()) { 
              if (!firstGraphNode) out << ",\n";
              
-             out << "    { \"user_id\": \"" << escapeJsonString(clients[i].ID()) << "\", \"friends\": [";
+             // 改为 user_name
+             out << "    { \"user_name\": \"" << escapeJsonString(clients[i].Name()) << "\", \"friends\": [";
              
              for(int k = 0; k < neighbors->size(); ++k) {
-                // 获取邻居索引 (注意：这里 LinkList::operator[] 已经是 const 了)
                 int neighborIdx = (*neighbors)[k];
                 if (neighborIdx >= 0 && neighborIdx < clients.size()) {
-                    out << "\"" << escapeJsonString(clients[neighborIdx].ID()) << "\"";
+                    // 改为写入 Name
+                    out << "\"" << escapeJsonString(clients[neighborIdx].Name()) << "\"";
                     if(k < neighbors->size() - 1) out << ", ";
                 }
             }
@@ -124,7 +125,7 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
     }
     out << "\n  ],\n";
 
-    // --- 3. 写入所有 Posts (扁平化) ---
+    // --- 3. 写入所有 Posts (使用 Name 构建引用) ---
     out << "  \"posts\": [\n";
     bool firstPost = true;
     for (int i = 0; i < clients.size(); ++i) {
@@ -133,18 +134,21 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
             if (!firstPost) out << ",\n";
             Post& p = c.posts[j];
             out << "    {\n";
-            out << "      \"global_id\": \"" << c.ID() << "_" << p.get_idex() << "\",\n"; // 唯一标识
-            out << "      \"author_id\": \"" << c.ID() << "\",\n";
+            // global_id 使用 Name
+            out << "      \"global_id\": \"" << c.Name() << "_" << p.get_idex() << "\",\n"; 
+            // author_name
+            out << "      \"author_name\": \"" << escapeJsonString(c.Name()) << "\",\n";
             out << "      \"title\": \"" << escapeJsonString(p.get_title()) << "\",\n";
             out << "      \"content\": \"" << escapeJsonString(p.get_content()) << "\",\n";
             out << "      \"idex\": " << p.get_idex() << ",\n";
             out << "      \"floor\": " << p.get_floor() << ",\n";
             
-            // Likers
+            // Likers Names
             out << "      \"likers\": [";
             for(int k=0; k < p.get_likes_list().size(); ++k) {
                 if(p.get_likes_list()[k])
-                    out << "\"" << escapeJsonString(p.get_likes_list()[k]->ID()) << "\"";
+                    // 改为写入 Name
+                    out << "\"" << escapeJsonString(p.get_likes_list()[k]->Name()) << "\"";
                 if(k < p.get_likes_list().size() - 1) out << ", ";
             }
             out << "]\n";
@@ -154,7 +158,7 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
     }
     out << "\n  ],\n";
 
-    // --- 4. 写入所有 Comments (扁平化) ---
+    // --- 4. 写入所有 Comments (使用 Name 构建引用) ---
     out << "  \"comments\": [\n";
     bool firstComment = true;
     for (int i = 0; i < clients.size(); ++i) {
@@ -165,8 +169,10 @@ bool FileManager::save(SeqList<Client>& clients, SocialGraph& graph) {
                 if (!firstComment) out << ",\n";
                 Comment& com = p.comment_list[k];
                 out << "    {\n";
-                out << "      \"post_global_id\": \"" << c.ID() << "_" << p.get_idex() << "\",\n";
-                out << "      \"author_id\": \"" << (com.get_author() ? com.get_author()->ID() : "") << "\",\n";
+                // post_global_id 使用 Name
+                out << "      \"post_global_id\": \"" << c.Name() << "_" << p.get_idex() << "\",\n";
+                // author_name
+                out << "      \"author_name\": \"" << (com.get_author() ? escapeJsonString(com.get_author()->Name()) : "") << "\",\n";
                 out << "      \"content\": \"" << escapeJsonString(com.get_content()) << "\",\n";
                 out << "      \"floor\": " << com.floor() << ",\n";
                 out << "      \"reply_floor\": " << com.get_comment_floor() << "\n";
@@ -236,7 +242,6 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
         while(true) {
             size_t objStart = json.find("{", pos);
             
-            // 停止条件：找到下一个大数组的键 (social_graph 或 posts)，或者找不到 {
             size_t nextSection1 = json.find("\"social_graph\":");
             size_t nextSection2 = json.find("\"posts\":");
             size_t boundary = string::npos;
@@ -260,7 +265,7 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
         }
     }
 
-    // --- 2. 解析 Social Graph ---
+    // --- 2. 解析 Social Graph (使用 user_name) ---
     size_t graphStartKey = json.find("\"social_graph\":");
     if(graphStartKey != string::npos) {
         size_t arrStart = json.find("[", graphStartKey);
@@ -268,18 +273,18 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
 
         while(true) {
             size_t objStart = json.find("{", pos);
-            // 边界检查：posts
             size_t nextSection = json.find("\"posts\":");
             
             if(objStart == string::npos || (nextSection != string::npos && objStart > nextSection)) break;
             
             int localPos = objStart;
-            string uid = extractValue(json, "user_id", localPos);
+            // 读取 user_name
+            string uname = extractValue(json, "user_name", localPos);
             
             TempFriendships tf;
-            tf.user_id = uid;
+            tf.user_name = uname;
 
-            // 解析 friends 数组
+            // 解析 friends 数组 (都是 names)
             size_t fKey = json.find("\"friends\":", localPos);
             if(fKey != string::npos) {
                  size_t fStart = json.find("[", fKey);
@@ -291,8 +296,9 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
                      size_t q1 = fRaw.find("\"", fp);
                      if(q1 == string::npos) break;
                      size_t q2 = fRaw.find("\"", q1+1);
-                     string fid = unescapeJsonString(fRaw.substr(q1+1, q2-q1-1));
-                     tf.friend_ids.add(fid);
+                     // 这里的 fid 实际上是 friend name
+                     string fname = unescapeJsonString(fRaw.substr(q1+1, q2-q1-1));
+                     tf.friend_names.add(fname);
                      fp = q2 + 1;
                  }
             }
@@ -316,13 +322,15 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
             if(objStart == string::npos || objStart > nextArrKey) break;
 
             int localPos = objStart;
-            string aid = extractValue(json, "author_id", localPos);
+            // 读取 author_name
+            string authorName = extractValue(json, "author_name", localPos);
             string title = extractValue(json, "title", localPos);
             string content = extractValue(json, "content", localPos);
             string idexStr = extractValue(json, "idex", localPos);
             string floorStr = extractValue(json, "floor", localPos);
             
-            Client* author = findClient(clients, aid);
+            // 按 Name 查找
+            Client* author = findClient(clients, authorName);
             if(author) {
                 Post p(title, content);
                 if(!idexStr.empty()) p.set_idex(stoi(idexStr));
@@ -348,8 +356,9 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
                         size_t q1 = lRaw.find("\"", lp);
                         if(q1 == string::npos) break;
                         size_t q2 = lRaw.find("\"", q1+1);
-                        string lid = unescapeJsonString(lRaw.substr(q1+1, q2-q1-1));
-                        tpl.liker_ids.add(lid);
+                        // 这里的 lid 实际上是 liker name
+                        string lname = unescapeJsonString(lRaw.substr(q1+1, q2-q1-1));
+                        tpl.liker_names.add(lname);
                         lp = q2 + 1;
                     }
                     temp_liker_links.add(tpl);
@@ -375,14 +384,16 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
             if(objStart == string::npos || (arrEndC != string::npos && objStart > arrEndC)) break;
 
             int localPos = objStart;
+            // global_id 中包含 Name
             string pid = extractValue(json, "post_global_id", localPos);
-            string aid = extractValue(json, "author_id", localPos);
+            // author_name
+            string authorName = extractValue(json, "author_name", localPos);
             string content = extractValue(json, "content", localPos);
             string floorStr = extractValue(json, "floor", localPos);
             string repFloorStr = extractValue(json, "reply_floor", localPos);
             
             Post* post = findPost(clients, pid);
-            Client* author = findClient(clients, aid);
+            Client* author = findClient(clients, authorName);
             
             if(post && author) {
                 int rf = repFloorStr.empty() ? -1 : stoi(repFloorStr);
@@ -396,28 +407,28 @@ bool FileManager::load(SeqList<Client>& clients, SocialGraph& graph) {
         }
     }
 
-    // --- 5. 链接点赞 ---
+    // --- 5. 链接点赞 (使用 Name) ---
     for(int i=0; i<temp_liker_links.size(); ++i) {
         TempPostLikers& tpl = temp_liker_links[i];
-        for(int j=0; j<tpl.liker_ids.size(); ++j) {
-            Client* liker = findClient(clients, tpl.liker_ids[j]);
+        for(int j=0; j<tpl.liker_names.size(); ++j) {
+            Client* liker = findClient(clients, tpl.liker_names[j]);
             if(liker) {
                 tpl.post_ptr->get_likes_list().add(liker);
             }
         }
     }
     
-    // --- 6. 链接好友关系 (重建图) ---
-    graph.resize(100); // 恢复到默认最大容量，确保后续能注册新用户
+    // --- 6. 链接好友关系 (使用 Name 重建图) ---
+    graph.resize(100); 
     for(int i = 0; i < temp_friend_links.size(); ++i) {
         TempFriendships& tf = temp_friend_links[i];
-        Client* u = findClient(clients, tf.user_id);
+        Client* u = findClient(clients, tf.user_name);
         if(!u) continue;
         
         int uIdx = getClientIndex(clients, u);
         
-        for(int j = 0; j < tf.friend_ids.size(); ++j) {
-            Client* v = findClient(clients, tf.friend_ids[j]);
+        for(int j = 0; j < tf.friend_names.size(); ++j) {
+            Client* v = findClient(clients, tf.friend_names[j]);
             if(!v) continue;
             int vIdx = getClientIndex(clients, v);
             

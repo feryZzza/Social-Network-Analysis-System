@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QVBoxLayout>
+#include <string>
 
 namespace {
 
@@ -22,8 +23,7 @@ QString statusToText(CoreStatus status) {
     case ERR_NO_ACTION_TO_UNDO: return QObject::tr("没有可撤销的操作");
     case ERR_ACTION_INVALID: return QObject::tr("操作已失效");
     case ERR_ALREADY_FRIENDS: return QObject::tr("已经是好友了");
-    case ERR_NOT_FRIENDS: return QObject::tr("尚未建立好友关系");
-    case ERR_SELF_RELATION: return QObject::tr("不能与自己建立关系");
+    case ERR_SELF_FRIEND: return QObject::tr("不能添加自己为好友");
     default: return QObject::tr("未知错误");
     }
 }
@@ -128,6 +128,7 @@ void AddPostDialog::setClient(Client* c) {
 void AddPostDialog::updateClientLabel() {
     if (!clientLabel) return;
     if (client) {
+        // 依然显示 ID 以供参考，但格式略微调整
         clientLabel->setText(
             tr("当前用户：%1 (%2)")
                 .arg(QString::fromStdString(client->Name()))

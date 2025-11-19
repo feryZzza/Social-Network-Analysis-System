@@ -14,6 +14,7 @@ class AddPostDialog : public QDialog {
     Q_OBJECT
 public:
     explicit AddPostDialog(Core& coreRef, QWidget* parent = nullptr);
+    ~AddPostDialog() override = default;
 
     void setClient(Client* client);
 

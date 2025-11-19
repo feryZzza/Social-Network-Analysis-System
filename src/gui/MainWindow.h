@@ -6,6 +6,8 @@
 #include <QTextEdit>
 #include <QLabel>
 #include <QPushButton>
+#include <QListWidgetItem> // 显式包含
+#include <QVector>
 
 #include "manager/core.h"
 
@@ -16,6 +18,7 @@ class MainWindow : public QMainWindow {
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override = default; // 添加析构函数
 
 private slots:
     void onClientSelectionChanged();
@@ -40,7 +43,7 @@ private:
     void refreshFriends();
     void updateCurrentClientLabel();
     
-    // 这里的 key 生成逻辑将改为使用 Name
+    // 辅助函数：生成和解析帖子唯一键
     QString makePostKey(Client* owner, const Post& post) const;
     bool decodePostKey(const QString& key, QString& ownerName, int& idex) const;
     
@@ -62,6 +65,7 @@ private:
     QListWidget* postList = nullptr;
     QListWidget* commentList = nullptr;
     QListWidget* friendList = nullptr;
+    
     QLabel* postTitleLabel = nullptr;
     QLabel* postMetaLabel = nullptr;
     QLabel* postStatsLabel = nullptr;

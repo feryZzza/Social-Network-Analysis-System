@@ -198,7 +198,8 @@ CoreStatus Core::userLikePost(Client* liker, Post* post) {
     // 检查是否已赞
     for(int i = 0; i < post->get_likes_list().size(); i++){
         Client* existing = post->get_likes_list()[i];
-        if(existing && existing->ID() == liker->ID()){
+        // 修改: 比较 Name 而不是 ID
+        if(existing && existing->Name() == liker->Name()){
             // 已赞，执行取消赞逻辑
             post->get_likes_list().remove(i);
             post->decrement_likes();
