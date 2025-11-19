@@ -3,7 +3,7 @@
     { "name": "Admin(管理员)", "id": "admin", "password": "root", "post_time": 0 },
     { "name": "Spammer(刷屏狂)", "id": "spammer", "password": "123456", "post_time": 0 },
     { "name": "Ghost(幽灵)", "id": "ghost", "password": "boo", "post_time": 1 },
-    { "name": "DeepDiver(潜水员)", "id": "diver", "password": "deep", "post_time": 1 },
+    { "name": "DeepDiver(潜水员)", "id": "diver", "password": "deep", "post_time": 2 },
     { "name": "Victim(受害者)", "id": "victim", "password": "help", "post_time": 2 }
   ],
   "posts": [
@@ -23,6 +23,15 @@
       "content": "我们将潜入第 10 层梦境。",
       "idex": 1,
       "floor": 11,
+      "likers": []
+    },
+    {
+      "global_id": "diver_2",
+      "author_id": "diver",
+      "title": "算法导论",
+      "content": "哈夫曼编码（Huffman Coding）是一种用于无损数据压缩的熵编码（权编码）算法。",
+      "idex": 2,
+      "floor": 4,
       "likers": []
     },
     {
@@ -121,6 +130,27 @@
       "content": "潜入第 10 层 (回复第 10 楼)",
       "floor": 11,
       "reply_floor": 10
+    },
+    {
+      "post_global_id": "diver_2",
+      "author_id": "admin",
+      "content": "1952年，大卫·哈夫曼在麻省理工学院攻读博士学位期间发明了该算法。",
+      "floor": 2,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "diver_2",
+      "author_id": "spammer",
+      "content": "该方法完全依据字符出现概率来构造异字头的平均长度最短的码字。",
+      "floor": 3,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "diver_2",
+      "author_id": "ghost",
+      "content": "Huffman coding is efficient for compressing text data.",
+      "floor": 4,
+      "reply_floor": -1
     }
   ]
 }

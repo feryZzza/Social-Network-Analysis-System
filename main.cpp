@@ -83,7 +83,7 @@ int main() {
         }
 
 
-        // --- 场景三：深度楼中楼递归 (Stairway to Heaven) ---
+        // --- 场景三：深度楼中楼递归 (Nested Replies) ---
         // 测试目的：测试极深的回复链，以及 JSON 序列化/反序列化是否能处理这种依赖。
         cout << "\n[场景三] 深度楼中楼递归 (Nested Replies)..." << endl;
         core.userAddPost(diver, "深海挑战", "我们将潜入第 10 层梦境。");
@@ -142,6 +142,21 @@ int main() {
         // 即使帖子回来了，之前的引用关系已经被切断（为了安全）。
         cout << "   -> Admin 再次试图撤销..." << endl;
         core.userUndo(admin);
+
+
+        // --- 场景五：哈夫曼内容分析测试 (Huffman Analysis) ---
+        // 测试目的：验证哈夫曼树能否正确统计帖子及评论的词频，生成编码并完成压缩/解压闭环。
+        cout << "\n[场景五] 哈夫曼内容分析测试 (Huffman Analysis)..." << endl;
+        core.userAddPost(diver, "算法导论", "哈夫曼编码（Huffman Coding）是一种用于无损数据压缩的熵编码（权编码）算法。");
+        Post* p_algo = &diver->posts[diver->posts.size()-1]; // 获取最新发的帖子
+
+        // 增加一些评论以丰富文本量
+        core.userAddComment(admin, p_algo, "1952年，大卫·哈夫曼在麻省理工学院攻读博士学位期间发明了该算法。");
+        core.userAddComment(spammer, p_algo, "该方法完全依据字符出现概率来构造异字头的平均长度最短的码字。");
+        core.userAddComment(ghost, p_algo, "Huffman coding is efficient for compressing text data.");
+
+        // 执行分析
+        core.analyzePostContent(p_algo);
     }
 
     // 3. 最终状态展示
