@@ -296,8 +296,6 @@ int Core::getRelationDistance(Client* a, Client* b) {
 
     LinkList<int> path;
     if (social_net.shortestPath(idxA, idxB, path)) {
-        // path 包含从 start 到 target 的所有节点，包括 start 和 target
-        // 距离 = 节点数 - 1
         return path.size() - 1;
     }
     

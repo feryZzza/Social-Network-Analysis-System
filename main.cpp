@@ -12,7 +12,7 @@ void printSeparator(const string& title) {
 }
 
 int main() {
-    printSeparator("社交网络管理系统 (AVL Tree Index Test)");
+    printSeparator("社交网络管理系统 (Social Graph Test)");
 
     Core& core = Core::instance();
 
@@ -26,108 +26,95 @@ int main() {
     // 如果是空环境，初始化测试数据
     if (core.getAllClients().empty()) {
         cout << "\n[Init] 正在注册基础用户群..." << endl;
-        // 注意：Register参数是 (Name, ID, Password)
-        // 现在我们的系统主键逻辑已经迁移到 Name 上
         core.registerClient("Alice", "id_001", "pass1");
         core.registerClient("Bob", "id_002", "pass2");
         core.registerClient("Charlie", "id_003", "pass3");
         core.registerClient("Dave", "id_004", "pass4");
         core.registerClient("Eve", "id_005", "pass5");
+        core.registerClient("Frank", "id_006", "pass6"); 
     }
-
-    // --- 场景一：基于名字的快速查找测试 ---
-    printSeparator("场景一：AVL树 查找功能测试");
-
-    vector<string> names_to_find = {"Alice", "Eve", "Charlie", "NonExistentUser"};
-
-    for (const string& name : names_to_find) {
-        cout << "正在查找用户 [" << name << "] ... ";
-        Client* user = core.getClientByName(name);
-        
-        if (user) {
-            cout << "✅ 找到! (ID: " << user->ID() << ", 内存地址: " << user << ")" << endl;
-        } else {
-            cout << "❌ 未找到 (符合预期)" << endl;
-        }
-    }
-
-    // --- 场景二：注册查重测试 ---
-    printSeparator("场景二：注册查重测试");
     
-    cout << "尝试注册已存在的用户名 [Alice]..." << endl;
-    CoreStatus status = core.registerClient("Alice", "id_new_alice", "123");
-    if (status == ERR_CLIENT_EXISTS) {
-        cout << "✅ 注册失败：用户已存在 (查重逻辑生效)" << endl;
-    } else {
-        cout << "❌ 错误：系统允许了重名注册！" << endl;
-    }
-
-    cout << "尝试注册新用户 [Frank]..." << endl;
-    status = core.registerClient("Frank", "id_006", "pass6");
-    if (status == SUCCESS) {
-        cout << "✅ 注册成功。" << endl;
-        // 立即验证是否能查到
-        if (core.getClientByName("Frank")) {
-            cout << "✅ 索引同步成功：可以立即查找到 Frank。" << endl;
-        } else {
-            cout << "❌ 索引同步失败：无法查找到刚注册的用户。" << endl;
-        }
-    } else {
-        cout << "❌ 注册失败 (Status: " << status << ")" << endl;
-    }
-
-
-    // --- 场景三：业务操作一致性测试 ---
-    printSeparator("场景三：业务操作测试 (使用查找结果)");
-
+    // 获取用户指针
     Client* alice = core.getClientByName("Alice");
     Client* bob = core.getClientByName("Bob");
+    Client* charlie = core.getClientByName("Charlie");
+    Client* dave = core.getClientByName("Dave");
+    Client* eve = core.getClientByName("Eve");
 
-    if (alice && bob) {
-        // 1. Alice 发帖
-        cout << "-> Alice 发布一条动态..." << endl;
-        core.userAddPost(alice, "AVL树真好用", "查找速度飞快，再也不用遍历链表了！");
-        Post* p_alice = &alice->posts.tail_ptr()->data; // 获取最新帖子
-        
-        cout << "   [验证] Alice 当前发帖数: " << alice->posts.size() << endl;
-
-        // 2. Bob 查找并点赞
-        cout << "-> Bob 搜索 Alice 并点赞..." << endl;
-        // 模拟 Bob 通过名字找到 Alice (已经在上面做了)
-        core.userLikePost(bob, p_alice);
-        cout << "   [验证] 帖子点赞数: " << p_alice->likes_num() << endl;
-
-        // 3. Bob 评论
-        cout << "-> Bob 评论帖子..." << endl;
-        core.userAddComment(bob, p_alice, "确实，O(logN) 比 O(N) 强多了。");
-        
-        // 4. 撤销测试
-        cout << "-> Bob 撤销评论..." << endl;
-        core.userUndo(bob);
-        cout << "   [验证] 撤销后评论数: " << p_alice->comment_list.size() << " (预期减少1)" << endl;
-    } else {
-        cout << "❌ 严重错误：无法获取测试用户，跳过业务测试。" << endl;
-    }
-
-
-    // --- 场景四：哈夫曼分析回归测试 ---
-    printSeparator("场景四：哈夫曼分析回归测试");
+    // --- 场景一：建立社交网络 ---
+    printSeparator("场景一：建立社交网络 (加好友)");
     
-    Client* frank = core.getClientByName("Frank");
-    if (frank) {
-        core.userAddPost(frank, "测试文本", "This is a test string for Huffman coding. We expect it to be compressed.");
-        Post* p_frank = &frank->posts.tail_ptr()->data;
-        core.analyzePostContent(p_frank);
+    if (alice && bob && charlie && dave && eve) {
+        cout << "构建社交网络..." << endl;
+        // 构建链式关系: Alice --friend--> Bob --friend--> Charlie --friend--> Dave
+        // Eve 是孤立的
+        
+        if (core.makeFriend(alice, bob) == SUCCESS)
+            cout << " + [Alice] 和 [Bob] 成为好友" << endl;
+        
+        if (core.makeFriend(bob, charlie) == SUCCESS)
+            cout << " + [Bob] 和 [Charlie] 成为好友" << endl;
+        
+        if (core.makeFriend(charlie, dave) == SUCCESS)
+            cout << " + [Charlie] 和 [Dave] 成为好友" << endl;
+
+        // 验证距离
+        int d1 = core.getRelationDistance(alice, bob);
+        cout << "\n[验证] Alice 和 Bob 的距离: " << d1 << " (预期: 1)" << endl;
+
+        int d2 = core.getRelationDistance(alice, charlie);
+        cout << "[验证] Alice 和 Charlie 的距离: " << d2 << " (预期: 2)" << endl;
+
+        int d3 = core.getRelationDistance(alice, dave);
+        cout << "[验证] Alice 和 Dave 的距离: " << d3 << " (预期: 3)" << endl;
+    } else {
+        cout << "❌ 无法获取所有测试用户，跳过测试。" << endl;
     }
 
+    // --- 场景二：删除好友关系 ---
+    printSeparator("场景二：删除好友关系 (断开链接)");
+    
+    if (alice && bob && charlie) {
+        cout << "尝试删除 [Bob] 和 [Charlie] 的好友关系..." << endl;
+        CoreStatus status = core.deleteFriend(bob, charlie);
+        
+        if (status == SUCCESS) {
+            cout << "✅ 删除成功。" << endl;
+            
+            // 验证直接关系
+            int d_direct = core.getRelationDistance(bob, charlie);
+            cout << "   -> Bob 和 Charlie 的距离: " << d_direct << " (预期: -1, 不连通)" << endl;
+            
+            // 验证间接关系 (链路是否断裂)
+            // 原本 Alice -> Bob -> Charlie -> Dave
+            // 现在 Bob -> Charlie 断了，所以 Alice -> Dave 也应该断了
+            int d_chain = core.getRelationDistance(alice, dave);
+            cout << "   -> Alice 和 Dave 的距离: " << d_chain << " (预期: -1, 链路断裂)" << endl;
+            
+        } else {
+            cout << "❌ 删除失败 (Status: " << status << ")" << endl;
+        }
+    }
 
-    // --- 最终状态展示 ---
-    printSeparator("最终系统状态");
-    SeqList<Client>& all = core.getAllClients();
-    cout << "当前系统用户总数: " << all.size() << endl;
-    cout << "用户列表:" << endl;
-    for(int i=0; i<all.size(); ++i) {
-        cout << " - " << all[i].Name() << " (ID: " << all[i].ID() << ")" << endl;
+    // --- 场景三：重新连接与环路 ---
+    printSeparator("场景三：重新连接 (多路径)");
+    
+    if (alice && charlie && eve) {
+        cout << "建立新关系: [Alice] --friend--> [Eve] --friend--> [Charlie]" << endl;
+        core.makeFriend(alice, eve);
+        core.makeFriend(eve, charlie);
+        
+        // 现在 Alice 可以通过 Eve 到达 Charlie (距离2)
+        // Alice -> Eve -> Charlie -> Dave (距离3)
+        
+        int d_new = core.getRelationDistance(alice, dave);
+        cout << "\n[验证] Alice 和 Dave 的新距离: " << d_new << " (预期: 3, 路径: Alice->Eve->Charlie->Dave)" << endl;
+        
+        if (d_new == 3) {
+            cout << "✅ 社交图谱路径计算正确 (BFS 找到了绕行路径)。" << endl;
+        } else {
+            cout << "❌ 路径计算错误。" << endl;
+        }
     }
 
     // 保存数据

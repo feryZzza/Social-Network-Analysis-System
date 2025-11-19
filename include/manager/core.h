@@ -67,7 +67,7 @@ private:
     bool is_avl_init = false; //平衡树是否初始化 
     
     // 单例模式
-    Core() : all_clients(100) {} 
+    Core() : all_clients(100),social_net(100) {} 
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 

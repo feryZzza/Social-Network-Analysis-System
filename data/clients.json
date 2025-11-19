@@ -1,31 +1,14 @@
 {
   "clients": [
-    { "name": "Alice", "id": "id_001", "password": "pass1", "post_time": 1 },
+    { "name": "Alice", "id": "id_001", "password": "pass1", "post_time": 0 },
     { "name": "Bob", "id": "id_002", "password": "pass2", "post_time": 0 },
     { "name": "Charlie", "id": "id_003", "password": "pass3", "post_time": 0 },
     { "name": "Dave", "id": "id_004", "password": "pass4", "post_time": 0 },
     { "name": "Eve", "id": "id_005", "password": "pass5", "post_time": 0 },
-    { "name": "Frank", "id": "id_006", "password": "pass6", "post_time": 1 }
+    { "name": "Frank", "id": "id_006", "password": "pass6", "post_time": 0 }
   ],
   "posts": [
-    {
-      "global_id": "id_001_1",
-      "author_id": "id_001",
-      "title": "AVL树真好用",
-      "content": "查找速度飞快，再也不用遍历链表了！",
-      "idex": 1,
-      "floor": 2,
-      "likers": ["id_002"]
-    },
-    {
-      "global_id": "id_006_1",
-      "author_id": "id_006",
-      "title": "测试文本",
-      "content": "This is a test string for Huffman coding. We expect it to be compressed.",
-      "idex": 1,
-      "floor": 1,
-      "likers": []
-    }
+
   ],
   "comments": [
 
