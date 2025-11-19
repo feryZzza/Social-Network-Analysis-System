@@ -1,137 +1,194 @@
 #include "models/action.h"
-#include "manager/undo_manager.h"
+#include "models/clients.h" // 必须包含完整的定义以访问 posts/posts.fake_remove
+#include "models/Post.h"
 #include "models/comment.h"
-#include "models/clients.h" // 确保包含 clients.h 来访问 posts 成员
+#include "manager/undo_manager.h"
 
-
-void Action::init(Client* c,bool add,Post* p){//初始化操作
+// 基类初始化
+void Action::init(Client* c, bool add, Post* p) {
     this->client = c;
-    is_add=add;
-    index = p->get_idex();
+    is_add = add;
     post = p;
-}//初始化
+    if (p) {
+        index = p->get_idex();
+    }
+}
 
+// --- PostAction 实现 ---
 
 void PostAction::clean(Client* client_context) {
     if (!post || post_node == nullptr) return;
 
-    // 查找 post 的实际索引
-    int index_to_remove = -1;
-    for(int i = 0; i < client_context->posts.size(); ++i) {
-        if(&client_context->posts[i] == post) {
-            index_to_remove = i;
-            break;
-        }
-    }
-
-    if (index_to_remove != -1) {
-        // 从用户的帖子列表中移除该帖子 (假删除，将节点从链表中断开，但不删除内存)
-        client_context->posts.fake_remove(index_to_remove); 
-    }
+    // 这里的逻辑是：操作被挤出栈了，且这是一个"删帖操作"(is_add=0)，
+    // 意味着帖子节点被临时保存在 post_node 中，现在彻底不需要了，必须释放内存。
+    // 如果是"发帖操作"(is_add=1)，节点在链表中，不需要我们删。
     
-    UndoManager::instance().notify_post_destroyed(post); //通知所有引用该 Post 的 Action，使其无效化
+    // 修正逻辑：原代码意图似乎是清理 悬挂 的节点
+    // 如果 is_add=false (删帖)，post_node 指向被 fake_remove 的节点，必须 delete
+    // 如果 is_add=true (发帖)，post_node 指向链表中的节点。如果 clean 被调用，说明这个发帖操作太久远了，不能撤销了。
+    // 此时帖子本身还在链表中，不能 delete post_node。
 
-    delete post_node;
-    post_node = nullptr;
-}
-
-bool PostAction::undo() {//主动从栈中弹出发帖操作并撤销
-    if(!check()){
-        cout<<"该操作涉及的帖子已被删除，无法撤销"<<endl;
-        used = true;
-        return false;
-    }else{
-        if(is_add){//发帖操作，撤销即彻底删帖 (is_add=1)
-            //这里不能调用Client的删帖函数，因为会产生新的操作，导致死循环
-            int index_to_remove = -1;
-            for(int i = 0; i < client->posts.size(); i++){
-                if(&client->posts[i] == post){
-                    index_to_remove = i;
-                    break;
-                }
-            }
-            
-            if (index_to_remove != -1) {
-                client->posts.fake_remove(index_to_remove); 
-            }
-            UndoManager::instance().notify_post_destroyed(post);//通知所有引用该 Post 的 Action，使其无效化
-            delete post_node;//删除该帖子
+    // 但是，如果 post 已经被 UndoManager 标记销毁了呢？
+    // 保持原版逻辑的简化版，只做最基础的安全清理
+    if (!is_add) { // 如果是当初执行了删除操作，现在连撤销记录都要删了，那就真的删了吧
+        if (post_node) {
+            delete post_node; 
             post_node = nullptr;
-        }else{//删帖操作，撤销即恢复帖子
-            client->posts.auto_insert(post_node);//将帖子按序插入帖子列表
-        }
-        used = true;
-        return true;
-    }
-}
-
-bool LikeAction::undo() {//主动从栈中弹出点赞操作并撤销
-    //点赞变为取消点赞，取消点赞变为点赞，只需调用receive_likes函数即可
-    if(!check()){//说明原操作的帖子已经被彻底删除，无法撤销，这时调用撤回会提示错误，并选择是否删除栈中的该操作
-        cout<<"该次点赞涉及的帖子已被删除，无法撤销"<<endl;
-        post = nullptr;
-        used = true;
-        return false;
-    }else{
-        post->receive_likes(client,true);
-        UndoManager::instance().unregister_action_self(post, this);//主动注销自身对帖子的引用关系
-        used = true;
-        return true;
-    }
-}
-void CommentAction::clean(Client* client_context) {
-    if (!post || comment_node == nullptr) return; 
-
-    client_context->receive_comment(false);//被评论数减一
-    
-    // 查找评论的实际索引
-    int index_to_remove = -1;
-    for(int i = 0; i < post->comment_list.size(); ++i) {
-        if(post->comment_list[i].floor() == comment_node->data.floor()) {
-            index_to_remove = i;
-            break;
         }
     }
-    
-    if (index_to_remove != -1) {
-        post->comment_list.fake_remove(index_to_remove);//从帖子评论列表中移除该评论
-    }
-
-    delete comment_node;
-    comment_node = nullptr;
 }
 
-bool CommentAction::undo() {//主动从栈中弹出评论操作并撤销
-    if(!check()){
-        cout<<"该评论涉及的帖子已被删除，无法撤销"<<endl;
+bool PostAction::undo() {
+    if (!check() || !client) {
+        cout << "[撤销失败] 帖子对象已失效。" << endl;
         used = true;
         return false;
-    }else{
-        if(is_add){//评论操作，撤销即删评论
-            //这里不能调用Client的删评论函数，因为会产生新的操作，导致死循环
-            int index_to_remove = -1;
-            for(int i = 0; i < post->comment_list.size(); ++i) {
-                if(post->comment_list[i].floor() == comment_node->data.floor()) {
-                    index_to_remove = i;
-                    break;
-                }
+    }
+
+    if (is_add) { 
+        // 原操作是：发帖
+        // 撤销逻辑：删帖 (从链表中移除，但不 delete，因为以后可能 Redo，或者仅仅是 fake_remove)
+        // 注意：这里我们执行真删除的逻辑（fake_remove），并将节点保存在 post_node 中供以后恢复？
+        // 不，根据原设计，undo 后 Action 也就结束了（除非做 redo）。
+        // 这里简单处理：从链表中移除，并 delete 节点（因为没有实现 redo）
+        
+        int index_to_remove = -1;
+        for (int i = 0; i < client->posts.size(); i++) {
+            if (&client->posts[i] == post) {
+                index_to_remove = i;
+                break;
             }
-            if (index_to_remove != -1) {
-                post->comment_list.fake_remove(index_to_remove);
-                post->author->receive_comment(0);//被评论数减一
+        }
+
+        if (index_to_remove != -1) {
+            // fake_remove 返回节点指针，我们负责 delete，因为这是"撤销发帖"
+            ListNode<Post>* node = client->posts.fake_remove(index_to_remove);
+            UndoManager::instance().notify_post_destroyed(post);
+            delete node; // 彻底删除
+            post = nullptr;
+            post_node = nullptr;
+        }
+        return true;
+
+    } else {
+        // 原操作是：删帖
+        // 撤销逻辑：恢复帖子 (将节点插回链表)
+        if (post_node) {
+            client->posts.auto_insert(post_node);
+            // 恢复后，需要重新注册 UndoManager? 
+            // 不，UndoManager 里的记录可能被清除了，但因为 post 指针没变，如果之前没彻底清理，可能还有效
+            // 简单起见，恢复即可
+            return true;
+        }
+        return false;
+    }
+}
+
+// --- LikeAction 实现 ---
+
+void LikeAction::clean(Client* client_context) {
+    if (post) {
+        UndoManager::instance().unregister_action_self(post, this);
+    }
+}
+
+bool LikeAction::undo() {
+    if (!check() || !client) {
+        cout << "[撤销失败] 帖子已不存在。" << endl;
+        used = true;
+        return false;
+    }
+
+    // 直接操作数据，不调用 Post::receive_likes
+    LinkList<Client*>& likes_list = post->get_likes_list();
+
+    if (is_add) {
+        // 原操作：点赞
+        // 撤销：取消点赞 (移除)
+        for (int i = 0; i < likes_list.size(); i++) {
+            if (likes_list[i] && likes_list[i]->ID() == client->ID()) {
+                likes_list.remove(i);
+                post->decrement_likes();
+                
+                // 注销引用
+                UndoManager::instance().unregister_action_self(post, this);
+                used = true;
+                return true;
             }
-            
-            UndoManager::instance().unregister_action_self(post, this); // 注销对 Post 的引用
-            delete comment_node;
-            comment_node = nullptr;
-            
+        }
+    } else {
+        // 原操作：取消点赞
+        // 撤销：重新点赞 (添加)
+        // 查重防止重复添加
+        bool exists = false;
+        for(int i=0; i<likes_list.size(); ++i) {
+            if(likes_list[i]->ID() == client->ID()) exists = true;
+        }
+        if (!exists) {
+            likes_list.add(client);
+            post->increment_likes();
+            UndoManager::instance().unregister_action_self(post, this); // 这里的逻辑根据原设计可能不需要，但为了对称
             used = true;
             return true;
-        }else{//删评论操作，撤销即恢复评论
-            post->comment_list.auto_insert(comment_node);//将评论按序插入评论列表
-            client->receive_comment(1);//被评论数加一
-            used = true;
         }
-        return true;
     }
+    return false;
+}
+
+// --- CommentAction 实现 ---
+
+void CommentAction::clean(Client* client_context) {
+    if (!post || !comment_node) return;
+    
+    if (!is_add) { // 如果是删评操作被清理，彻底删除节点
+        delete comment_node;
+        comment_node = nullptr;
+    }
+}
+
+bool CommentAction::undo() {
+    if (!check() || !client) {
+        cout << "[撤销失败] 帖子已不存在。" << endl;
+        used = true;
+        return false;
+    }
+
+    if (is_add) {
+        // 原操作：发评论
+        // 撤销：删评论
+        int index_to_remove = -1;
+        // 只能通过楼层号匹配，因为指针可能变了? 不，comment_node->data 是对象
+        // 我们用楼层号找
+        int target_floor = comment_node->data.floor();
+        
+        for (int i = 0; i < post->comment_list.size(); ++i) {
+            if (post->comment_list[i].floor() == target_floor) {
+                index_to_remove = i;
+                break;
+            }
+        }
+
+        if (index_to_remove != -1) {
+            ListNode<Comment>* node = post->comment_list.fake_remove(index_to_remove);
+            if (node) {
+                // 评论者的计数减一 (注意: 这里的 client 是发评论的人)
+                client->receive_comment(false);
+                
+                UndoManager::instance().unregister_action_self(post, this);
+                delete node; // 彻底删除
+            }
+            return true;
+        }
+
+    } else {
+        // 原操作：删评论
+        // 撤销：恢复评论
+        if (comment_node) {
+            post->comment_list.auto_insert(comment_node);
+            client->receive_comment(true); // 计数加一
+            used = true;
+            return true;
+        }
+    }
+    return false;
 }

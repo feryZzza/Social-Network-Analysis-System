@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "data_structure/lin_list.h"
+#include "models/Post.h"
 
 class Post;
 class Action;

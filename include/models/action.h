@@ -2,87 +2,100 @@
 #define ACTION_H
 #include <iostream>
 #include "data_structure/lin_list.h"
-#include "data_structure/stack.h"
-#include "data_structure/queue.h"
-#include <string>
-#include "models/clients.h"
-#include "models/Post.h"
-#include "models/comment.h"
 #include "manager/undo_manager.h"
+#include <string>
 
 using namespace std;
 
+// 前向声明
 class Client;
-class Comment;
 class Post;
+class Comment;
 
-class Action{//用来表示操作，用于实现模块二撤销功能
+class Action {
 public:
     Action() {}
     virtual ~Action() {}
-    virtual bool undo(){return false;};//主动从栈中弹出操作并撤销
     
-    inline bool check(){return post != nullptr;}
+    // 纯虚函数：撤销操作
+    // 返回 true 表示撤销成功
+    virtual bool undo() = 0;
     
-    void init(Client* client,bool add,Post* p);
+    // 初始化
+    void init(Client* client, bool add, Post* p);
     
-    virtual void invalidate(){post = nullptr;used =1;};
+    inline bool check() { return post != nullptr; }
+    
+    // 当操作被废弃（如Post被删导致Action失效）时调用
+    virtual void invalidate() { post = nullptr; used = true; };
 
-    virtual void clean(Client* client_context){};//清理资源,被动从栈中删除操作时手动调用
+    // 当操作从栈中因满而被挤出时调用，用于清理特定的节点内存
+    virtual void clean(Client* client_context) {};
 
-    virtual string type()=0;
+    virtual string type() = 0;
     
-    bool is_add = 0;//是添加操作还是删除操作
-    bool used = 0;//操作是否已经被撤销过，安全检查用
-    int index = -1;//操作涉及帖子的位置
+    bool is_add = false; // true=添加操作(撤销时需删除), false=删除操作(撤销时需恢复)
+    bool used = false;   // 是否已失效
+    int index = -1;      // 辅助索引
     
-    Client* client = nullptr;//操作的用户
-    Post* post = nullptr;//操作涉及的帖子
+    Client* client = nullptr;
+    Post* post = nullptr;
 };
 
-class PostAction: public Action{//发帖操作
+class PostAction: public Action {
 public:
     PostAction(ListNode<Post>* post_node) : post_node(post_node) {}
     PostAction() {}
     ~PostAction() override {} 
     
-    void invalidate() override{post_node = nullptr;post = nullptr;used = 1;}
+    void invalidate() override { 
+        post_node = nullptr; 
+        post = nullptr; 
+        used = true; 
+    }
 
-    bool undo() override;//主动从栈中弹出操作并撤销
+    bool undo() override;
     
-    void clean(Client* client) override;//被动从栈中删除操作时手动调用，彻底删除帖子时调用，防止野指针
+    void clean(Client* client) override;
 
-    string type() override{return is_add ? "发帖操作" : "删帖操作";};
+    string type() override { return is_add ? "发帖操作" : "删帖操作"; };
 
-    ListNode<Post>* post_node;//操作的帖子的节点指针
+    ListNode<Post>* post_node; // 持有链表节点的指针，用于恢复
 };
 
 
-class LikeAction: public Action{//点赞操作
+class LikeAction: public Action {
 public:
     LikeAction() {}
     ~LikeAction() override {};
 
-    bool undo() override;//主动从栈中弹出操作并撤销
-    //每次彻底删除帖子时调用，检查该操作的帖子是否被删除，若被删除则将post指针置为空,防止野指针
-    string type() override{return is_add ? "点赞操作" : "取消点赞操作";};
+    bool undo() override;
+    
+    // LikeAction 不需要特殊的 clean，因为它不持有 ListNode
+    void clean(Client* client_context) override;
+
+    string type() override { return is_add ? "点赞操作" : "取消点赞操作"; };
 };
 
-class CommentAction: public Action{//评论操作
+class CommentAction: public Action {
 public:
     CommentAction(ListNode<Comment>* comment_node) : comment_node(comment_node) {}
     CommentAction() {}
     ~CommentAction() override {}
 
-    void invalidate() override{comment_node = nullptr;post = nullptr;used = 1;}
+    void invalidate() override { 
+        comment_node = nullptr; 
+        post = nullptr; 
+        used = true; 
+    }
     
-    bool undo() override;//主动从栈中弹出操作并撤销
+    bool undo() override;
     
-    void clean(Client* client_context) override;//被动从栈中删除操作时手动调用，彻底删除评论时调用，防止野指针
+    void clean(Client* client_context) override;
 
-    string type() override{return is_add?"添加评论操作":"删除评论操作";};
+    string type() override { return is_add ? "添加评论操作" : "删除评论操作"; };
 
-    ListNode<Comment>* comment_node;//操作的评论的节点指针
+    ListNode<Comment>* comment_node;
 };
 
 #endif

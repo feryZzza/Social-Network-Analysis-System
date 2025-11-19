@@ -1,0 +1,27 @@
+{
+  "clients": [
+    {
+      "name": "张伟",
+      "id": "zhangwei",
+      "password": "pass123",
+      "post_time": 1,
+      "posts": [
+        {
+          "title": "C++从入门到放弃",
+          "content": "指针太难了！",
+          "idex": 1,
+          "floor": 2,
+          "likers": [],
+          "comments": [
+            {
+              "content": "多写代码就好了",
+              "floor": 2,
+              "reply_floor": -1,
+              "author_id": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

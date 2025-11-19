@@ -1,41 +1,48 @@
 #ifndef FILE_MANAGER_H
 #define FILE_MANAGER_H
 
-#include <iostream>
-#include <fstream>
-#include <string>
 #include "data_structure/lin_list.h"
+#include <string>
 
-// 前向声明核心数据结构和模型
-class Client;
-class Post;
-class Comment;
-
+class Client; // 前向声明
 
 class FileManager {
 public:
-    // 文件路径常量
-    const std::string file = "../data/clients.dat";
+    const std::string file_path = "../data/clients.json";
 
-    // 单例模式访问
-    inline static FileManager& instance() {
+    static FileManager& instance() {
         static FileManager instance; 
         return instance;
     }
 
-    // 核心功能：保存整个系统状态（包括所有客户端及其内容）
     bool save(SeqList<Client>& clients);
-
-    // 核心功能：加载整个系统状态
     bool load(SeqList<Client>& clients);
 
 private:
     FileManager() = default;
-    FileManager(const FileManager&) = delete;
-    FileManager& operator=(const FileManager&) = delete;
-
     
-    bool reconstructPointers(SeqList<Client>& clients);// 重建加载后对象间的指针关系
+    // 辅助结构：用于加载时临时存储关系
+    struct TempLoadData {
+        std::string client_id;
+        std::string post_id; // 格式: clientID_postIndex
+        LinkList<std::string> liker_ids;
+        LinkList<std::string> comment_author_ids;
+        bool operator==(const TempLoadData& other) const {
+            return post_id == other.post_id;
+        }
+    };
+    LinkList<TempLoadData> temp_load_data;
+
+    // JSON 辅助函数
+    std::string escapeJsonString(const std::string& s);
+    std::string unescapeJsonString(const std::string& s);
+    
+    // 解析辅助函数
+    std::string extractValue(const std::string& json, const std::string& key, int& startPos);
+    std::string extractObject(const std::string& json, int& startPos);
+    std::string extractArray(const std::string& json, int& startPos);
+    
+    bool reconstructPointers(SeqList<Client>& clients);
 };
 
 #endif

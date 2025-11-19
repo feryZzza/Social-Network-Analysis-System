@@ -2,326 +2,321 @@
 #include "models/clients.h"
 #include "models/Post.h"
 #include "models/comment.h"
-#include "data_structure/lin_list.h" // 明确包含我们自己的数据结构
 #include <fstream>
-#include <string>
+#include <sstream>
 
 using namespace std;
 
-// 写入字符串：先写长度，再写内容
-void writeString(ofstream& out, const string& s) {
-    size_t len = s.length();
-    out.write(reinterpret_cast<const char*>(&len), sizeof(len));
-    out.write(s.c_str(), len);
+// 简单的 JSON 字符串转义
+string FileManager::escapeJsonString(const string& s) {
+    string res = "";
+    for (char c : s) {
+        if (c == '"') res += "\\\"";
+        else if (c == '\\') res += "\\\\";
+        else if (c == '\n') res += "\\n";
+        else if (c == '\t') res += "\\t";
+        else res += c;
+    }
+    return res;
 }
 
-// 读取字符串：先读长度，再读内容 (不使用 std::vector)
-void readString(ifstream& in, string& s) {
-    size_t len;
-    in.read(reinterpret_cast<char*>(&len), sizeof(len));
-    if (in.eof() || len <= 0) { // 添加 eof 检查和长度检查
-        s = "";
-        return;
+// 简单的 JSON 字符串反转义
+string FileManager::unescapeJsonString(const string& s) {
+    string res = "";
+    for (size_t i = 0; i < s.length(); ++i) {
+        if (s[i] == '\\' && i + 1 < s.length()) {
+            char next = s[i+1];
+            if (next == '"') res += '"';
+            else if (next == '\\') res += '\\';
+            else if (next == 'n') res += '\n';
+            else if (next == 't') res += '\t';
+            else res += next; 
+            i++; 
+        } else {
+            res += s[i];
+        }
     }
-    // 创建一个临时缓冲区
-    char* buffer = new char[len + 1];
-    in.read(buffer, len);
-    buffer[len] = '\0'; // 确保字符串以 null 结尾
-    s = buffer; // 赋值给 std::string
-    delete[] buffer; // 释放缓冲区
+    return res;
 }
 
+bool FileManager::save(SeqList<Client>& clients) {
+    ofstream out(file_path);
+    if (!out.is_open()) return false;
 
-// 用于在加载后重建指针的数据结构
-struct PostLoadInfo {
-    string global_post_id; // 帖子的唯一ID (格式: ClientID_PostIDex)
-    LinkList<string> liker_ids; // 点赞者ID列表
-    LinkList<string> comment_author_ids; // 评论者ID列表 (按顺序)
+    out << "{\n  \"clients\": [\n";
 
-    // 为 LinkList 搜索提供比较，不写==重载过不了编译
-    bool operator==(const PostLoadInfo& other) const {
-        return global_post_id == other.global_post_id;
+    for (int i = 0; i < clients.size(); ++i) {
+        Client& c = clients[i];
+        out << "    {\n";
+        out << "      \"name\": \"" << escapeJsonString(c.Name()) << "\",\n";
+        out << "      \"id\": \"" << escapeJsonString(c.ID()) << "\",\n";
+        out << "      \"password\": \"" << escapeJsonString(c.Password()) << "\",\n";
+        out << "      \"post_time\": " << c.PostTime() << ",\n";
+        
+        out << "      \"posts\": [\n";
+        for (int j = 0; j < c.posts.size(); ++j) {
+            Post& p = c.posts[j];
+            out << "        {\n";
+            out << "          \"title\": \"" << escapeJsonString(p.get_title()) << "\",\n";
+            out << "          \"content\": \"" << escapeJsonString(p.get_content()) << "\",\n";
+            out << "          \"idex\": " << p.get_idex() << ",\n";
+            out << "          \"floor\": " << p.get_floor() << ",\n";
+            
+            // 保存点赞者ID数组
+            out << "          \"likers\": [";
+            for(int k=0; k < p.get_likes_list().size(); ++k) {
+                if(p.get_likes_list()[k])
+                    out << "\"" << escapeJsonString(p.get_likes_list()[k]->ID()) << "\"";
+                if(k < p.get_likes_list().size() - 1) out << ", ";
+            }
+            out << "],\n";
+
+            // 保存评论
+            out << "          \"comments\": [\n";
+            for(int k=0; k < p.comment_list.size(); ++k) {
+                Comment& com = p.comment_list[k];
+                out << "            {\n";
+                out << "              \"content\": \"" << escapeJsonString(com.get_content()) << "\",\n";
+                out << "              \"floor\": " << com.floor() << ",\n";
+                out << "              \"reply_floor\": " << com.get_comment_floor() << ",\n";
+                string authorId = com.get_author() ? com.get_author()->ID() : "";
+                out << "              \"author_id\": \"" << escapeJsonString(authorId) << "\"\n";
+                out << "            }";
+                if(k < p.comment_list.size() - 1) out << ",";
+                out << "\n";
+            }
+            out << "          ]\n";
+            out << "        }";
+            if(j < c.posts.size() - 1) out << ",";
+            out << "\n";
+        }
+        out << "      ]\n";
+        out << "    }";
+        if(i < clients.size() - 1) out << ",";
+        out << "\n";
     }
-};
 
-// 用于在加载时临时存储所有需要链接的信息
-// 我们把它放在静态变量里，这样 load 和 reconstructPointers 都可以访问
-static LinkList<PostLoadInfo> posts_to_link_list;
+    out << "  ]\n}";
+    out.close();
+    return true;
+}
 
-// 重建指针的辅助函数 (不使用 std::map)
+// 简单的查找辅助函数
+// 在 json 字符串中从 startPos 开始查找 "key": value
+string FileManager::extractValue(const string& json, const string& key, int& startPos) {
+    string searchKey = "\"" + key + "\":";
+    size_t found = json.find(searchKey, startPos);
+    if (found == string::npos) return "";
+
+    size_t valStart = found + searchKey.length();
+    // 跳过空白
+    while(valStart < json.length() && (json[valStart] == ' ' || json[valStart] == '\n' || json[valStart] == '\t')) valStart++;
+
+    if (valStart >= json.length()) return "";
+
+    if (json[valStart] == '"') { // 字符串
+        size_t valEnd = json.find("\"", valStart + 1);
+        // 处理转义引号的情况 (简单处理)
+        while(valEnd != string::npos && json[valEnd-1] == '\\') {
+             valEnd = json.find("\"", valEnd + 1);
+        }
+        if (valEnd == string::npos) return "";
+        // 更新 startPos 以便下次搜索
+        startPos = valEnd + 1;
+        return unescapeJsonString(json.substr(valStart + 1, valEnd - valStart - 1));
+    } else { // 数字 或 bool
+        size_t valEnd = valStart;
+        while(valEnd < json.length() && (isdigit(json[valEnd]) || json[valEnd] == '-')) valEnd++;
+        startPos = valEnd;
+        return json.substr(valStart, valEnd - valStart);
+    }
+}
+
+// 加载函数
+bool FileManager::load(SeqList<Client>& clients) {
+    ifstream in(file_path);
+    if (!in.is_open()) return false;
+
+    stringstream buffer;
+    buffer << in.rdbuf();
+    string json = buffer.str();
+    in.close();
+
+    // 重置列表
+    clients.~SeqList();
+    new (&clients) SeqList<Client>(100);
+    temp_load_data.~LinkList();
+    new (&temp_load_data) LinkList<TempLoadData>();
+
+    int globalPos = 0;
+    
+    // 1. 查找 "clients": [
+    size_t clientsStart = json.find("\"clients\":");
+    if (clientsStart == string::npos) return false;
+    size_t arrayStart = json.find("[", clientsStart);
+    if (arrayStart == string::npos) return false;
+    
+    globalPos = arrayStart + 1;
+
+    // 循环解析 Client 对象
+    while (true) {
+        size_t objStart = json.find("{", globalPos);
+        size_t arrayEnd = json.find("]", globalPos);
+        
+        // 如果先遇到了 ]，说明数组结束
+        if (arrayEnd != string::npos && (objStart == string::npos || arrayEnd < objStart)) break;
+        
+        // 解析 Client 基础信息
+        int clientPos = objStart;
+        string name = extractValue(json, "name", clientPos);
+        string id = extractValue(json, "id", clientPos);
+        string pwd = extractValue(json, "password", clientPos);
+        string ptStr = extractValue(json, "post_time", clientPos);
+        int postTime = ptStr.empty() ? 0 : stoi(ptStr);
+
+        Client client(name, id, pwd);
+        client.setPostTime(postTime);
+
+        // 解析 Posts
+        size_t postsStartKey = json.find("\"posts\":", clientPos);
+        if (postsStartKey != string::npos) {
+            size_t pArrayStart = json.find("[", postsStartKey);
+            int postGlobalPos = pArrayStart + 1;
+            
+            while(true) {
+                size_t pObjStart = json.find("{", postGlobalPos);
+                size_t pArrayEnd = json.find("]", postGlobalPos);
+                // 检查 Posts 数组是否结束
+                if (pArrayEnd < pObjStart) break; 
+
+                int pPos = pObjStart;
+                string title = extractValue(json, "title", pPos);
+                string content = extractValue(json, "content", pPos);
+                string idexStr = extractValue(json, "idex", pPos);
+                string floorStr = extractValue(json, "floor", pPos);
+                
+                Post post(title, content);
+                post.set_idex(stoi(idexStr));
+                post.set_floor(stoi(floorStr));
+                // --- 关键修改：初始化为 nullptr，防止指向栈上即将销毁的 client ---
+                post.set_author(nullptr); 
+
+                TempLoadData tData;
+                tData.client_id = id;
+                tData.post_id = id + "_" + idexStr;
+
+                // 解析 Likers 数组
+                size_t likerKey = json.find("\"likers\":", pPos);
+                size_t lArrStart = json.find("[", likerKey);
+                size_t lArrEnd = json.find("]", lArrStart);
+                string likersRaw = json.substr(lArrStart+1, lArrEnd - lArrStart - 1);
+                
+                int lPos = 0;
+                while(true) {
+                    size_t q1 = likersRaw.find("\"", lPos);
+                    if(q1 == string::npos) break;
+                    size_t q2 = likersRaw.find("\"", q1+1);
+                    string lid = unescapeJsonString(likersRaw.substr(q1+1, q2-q1-1));
+                    tData.liker_ids.add(lid);
+                    lPos = q2 + 1;
+                }
+
+                // 解析 Comments 数组
+                size_t commentsKey = json.find("\"comments\":", pPos);
+                size_t cArrayStart = json.find("[", commentsKey);
+                int cPos = cArrayStart + 1;
+                
+                while(true) {
+                     size_t cObjStart = json.find("{", cPos);
+                     size_t checkClose = cPos;
+                     while(isspace(json[checkClose])) checkClose++;
+                     if(json[checkClose] == ']') break;
+
+                     string cContent = extractValue(json, "content", cPos);
+                     string cFloor = extractValue(json, "floor", cPos);
+                     string cRepFloor = extractValue(json, "reply_floor", cPos);
+                     string cAuthId = extractValue(json, "author_id", cPos);
+                     
+                     if(cContent.empty()) break;
+
+                     Comment cmt(nullptr, cContent, stoi(cRepFloor));
+                     cmt.set_floor(stoi(cFloor));
+                     post.comment_list.add(cmt);
+                     tData.comment_author_ids.add(cAuthId);
+                     
+                     size_t nextObj = json.find("}", cPos); 
+                     cPos = nextObj + 1;
+                     while(isspace(json[cPos]) || json[cPos] == ',') cPos++;
+                     if(json[cPos] == ']') break;
+                }
+                
+                client.posts.add(post);
+                temp_load_data.add(tData);
+
+                postGlobalPos = json.find("}", pPos) + 1; // Post 结束
+                globalPos = postGlobalPos;
+            }
+        }
+        
+        clients.add(client);
+        
+        size_t nextClientObj = json.find("}", globalPos); 
+        globalPos = nextClientObj + 1;
+    }
+
+    reconstructPointers(clients);
+    return true;
+}
+
 bool FileManager::reconstructPointers(SeqList<Client>& clients) {
-    if (posts_to_link_list.empty()) {
-        // 如果没有需要链接的数据 (比如是新系统或加载失败)，直接返回
-        return true; 
-    }
-
-    // 遍历所有 Client 和 Post，开始重建指针
     for (int i = 0; i < clients.size(); ++i) {
         Client& client = clients[i];
         for (int j = 0; j < client.posts.size(); ++j) {
             Post& post = client.posts[j];
-            // 用加载时生成的同一个 global_post_id 来查找
-            string global_post_id = client.ID() + "_" + to_string(post.get_idex());
             
-            // 在 LinkList 中查找此 post 的加载信息 (线性查找)
-            PostLoadInfo* info = nullptr;
-            for (int k = 0; k < posts_to_link_list.size(); ++k) {
-                if (posts_to_link_list[k].global_post_id == global_post_id) {
-                    info = &posts_to_link_list[k];
+            // --- 关键修复 ---
+            // 重新将 author 指向内存中真正的 client 对象
+            post.set_author(&client);
+
+            // 后续逻辑：恢复点赞和评论关系
+            string global_post_id = client.ID() + "_" + to_string(post.get_idex());
+
+            TempLoadData* info = nullptr;
+            for (int k = 0; k < temp_load_data.size(); ++k) {
+                if (temp_load_data[k].post_id == global_post_id) {
+                    info = &temp_load_data[k];
                     break;
                 }
             }
-
-            // 如果没找到，跳过这篇 post
+            
             if (!info) continue;
 
-            // 3a. 链接点赞列表 (likes_list)
+            // 重建点赞
             for (int k = 0; k < info->liker_ids.size(); ++k) {
-                string& liker_id = info->liker_ids[k];
-                
-                // 4a. 查找 liker_id 对应的 Client* (嵌套循环 O(N) 查找)
-                Client* liker_client = nullptr;
+                string targetId = info->liker_ids[k];
                 for (int m = 0; m < clients.size(); ++m) {
-                    if (clients[m].ID() == liker_id) {
-                        liker_client = &clients[m];
+                    if (clients[m].ID() == targetId) {
+                        post.get_likes_list().add(&clients[m]);
                         break;
                     }
                 }
-                
-                if (liker_client) {
-                    post.get_likes_list().add(liker_client);
-                }
             }
 
-            // 3b. 链接评论作者 (comment.author)
+            // 重建评论作者
             for (int k = 0; k < post.comment_list.size(); ++k) {
-                if (k >= info->comment_author_ids.size()) break; // 防止越界
-
-                string& author_id = info->comment_author_ids[k];
-                
-                // 4b. 查找 author_id 对应的 Client* (嵌套循环 O(N) 查找)
-                Client* author_client = nullptr;
+                if (k >= info->comment_author_ids.size()) break;
+                string targetId = info->comment_author_ids[k];
                 for (int m = 0; m < clients.size(); ++m) {
-                    if (clients[m].ID() == author_id) {
-                        author_client = &clients[m];
+                    if (clients[m].ID() == targetId) {
+                        post.comment_list[k].set_author(&clients[m]);
                         break;
                     }
                 }
-
-                if (author_client) {
-                    post.comment_list[k].set_author(author_client);
-                }
             }
         }
     }
-
-    posts_to_link_list.~LinkList(); // 清理临时数据
-    new (&posts_to_link_list) LinkList<PostLoadInfo>(); // 重建
     
-    cout << "[核心日志] 指针重建完成。" << endl;
-    return true;
-}
-
-
-bool FileManager::save(SeqList<Client>& clients) {
-    ofstream out_file(file, ios::binary | ios::trunc); // 每次都覆盖写入
-    if (!out_file.is_open()) {
-        cerr << "[错误] 无法打开文件进行保存: " << file << endl;
-        return false;
-    }
-
-    try {
-        // 1. 写入 Client 数量
-        int client_count = clients.size();
-        out_file.write(reinterpret_cast<const char*>(&client_count), sizeof(client_count));
-
-        // 2. 遍历并写入每个 Client
-        for (int i = 0; i < client_count; ++i) {
-            Client& client = clients[i];
-            
-            // 写入 Client 基础数据
-            writeString(out_file, client.Name());
-            writeString(out_file, client.ID());
-            writeString(out_file, client.Password()); // (需要 getPassword())
-            int post_time = client.PostTime(); // (需要 getPostTime())
-            out_file.write(reinterpret_cast<const char*>(&post_time), sizeof(post_time));
-
-            // 3. 写入 Post 数量
-            int post_count = client.posts.size();
-            out_file.write(reinterpret_cast<const char*>(&post_count), sizeof(post_count));
-
-            // 4. 遍历并写入每个 Post
-            for (int j = 0; j < post_count; ++j) {
-                Post& post = client.posts[j];
-
-                // 写入 Post 基础数据
-                int idex = post.get_idex();
-                int floor = post.get_floor(); // (需要 get_floor())
-                out_file.write(reinterpret_cast<const char*>(&idex), sizeof(idex));
-                out_file.write(reinterpret_cast<const char*>(&floor), sizeof(floor));
-                writeString(out_file, post.get_title());
-                writeString(out_file, post.get_content()); // (需要 get_content())
-
-                // 5. 写入 Comment 数量
-                int comment_count = post.comment_list.size();
-                out_file.write(reinterpret_cast<const char*>(&comment_count), sizeof(comment_count));
-                
-                // 6. 遍历并写入每个 Comment
-                for (int k = 0; k < comment_count; ++k) {
-                    Comment& comment = post.comment_list[k];
-                    
-                    int c_floor = comment.floor();
-                    int c_reply_floor = comment.get_comment_floor(); // (需要 get_comment_floor())
-                    
-                    out_file.write(reinterpret_cast<const char*>(&c_floor), sizeof(c_floor));
-                    out_file.write(reinterpret_cast<const char*>(&c_reply_floor), sizeof(c_reply_floor));
-                    writeString(out_file, comment.get_content());
-                    
-                    // --- 关键点：写入作者ID，而不是指针！ ---
-                    string author_id = comment.get_author() ? comment.get_author()->ID() : "";
-                    writeString(out_file, author_id);
-                }
-
-                // 7. 写入 Likes 数量
-                LinkList<Client*>& likes_list = post.get_likes_list(); // (需要 get_likes_list())
-                int like_count = likes_list.size();
-                out_file.write(reinterpret_cast<const char*>(&like_count), sizeof(like_count));
-
-                // 8. 遍历并写入每个 Liker 的 ID
-                for (int k = 0; k < like_count; ++k) {
-                    // --- 关键点：写入点赞者ID，而不是指针！ ---
-                    string liker_id = likes_list[k] ? likes_list[k]->ID() : "";
-                    writeString(out_file, liker_id);
-                }
-            }
-        }
-    } catch (const exception& e) {
-        cerr << "[错误] 保存期间发生异常: " << e.what() << endl;
-        out_file.close();
-        return false;
-    }
-
-    out_file.close();
-    // cout << "[成功] 数据已保存到 " << file << endl; // 这个日志移到 main.cpp 中
-    return true;
-}
-
-bool FileManager::load(SeqList<Client>& clients) {
-    ifstream in_file(file, ios::binary);
-    if (!in_file.is_open()) {
-        // cout << "[提示] 未找到保存文件 " << file << "。将启动一个新系统。" << endl;
-        return false; // 这不是一个错误，只是文件不存在
-    }
-
-    // 确保开始加载前，临时 list 是空的
-    posts_to_link_list.~LinkList();
-    new (&posts_to_link_list) LinkList<PostLoadInfo>();
-    
-    // 确保 clients 列表是空的
-    clients.~SeqList(); // 析构旧列表 (如果里面有东西)
-    new (&clients) SeqList<Client>(100); // 重新构造空列表
-
-    try {
-        // 1. 读取 Client 数量
-        int client_count = 0;
-        in_file.read(reinterpret_cast<char*>(&client_count), sizeof(client_count));
-        if (in_file.fail() || client_count < 0 || client_count > 10000) { // 添加一个合理性检查
-             cout << "[提示] 文件为空或已损坏。" << endl;
-             in_file.close();
-             return false;
-        }
-
-        // 2. 遍历并读取每个 Client
-        for (int i = 0; i < client_count; ++i) {
-            string name, id, password;
-            int post_time;
-            
-            readString(in_file, name);
-            readString(in_file, id);
-            readString(in_file, password);
-            in_file.read(reinterpret_cast<char*>(&post_time), sizeof(post_time));
-            
-            Client client(name, id, password);
-            client.setPostTime(post_time); // (需要 setPostTime())
-
-            // 3. 读取 Post 数量
-            int post_count = 0;
-            in_file.read(reinterpret_cast<char*>(&post_count), sizeof(post_count));
-
-            // 4. 遍历并读取每个 Post
-            for (int j = 0; j < post_count; ++j) {
-                int idex, floor;
-                string title, content;
-
-                in_file.read(reinterpret_cast<char*>(&idex), sizeof(idex));
-                in_file.read(reinterpret_cast<char*>(&floor), sizeof(floor));
-                readString(in_file, title);
-                readString(in_file, content);
-
-                Post post(title, content);
-                post.set_idex(idex);
-                post.set_floor(floor); // (需要 set_floor())
-                post.set_author(&client); // 临时设置作者为当前 client
-
-                // 生成唯一ID，用于重建
-                string global_post_id = client.ID() + "_" + to_string(idex);
-                PostLoadInfo post_info;
-                post_info.global_post_id = global_post_id;
-
-                // 5. 读取 Comment 数量
-                int comment_count = 0;
-                in_file.read(reinterpret_cast<char*>(&comment_count), sizeof(comment_count));
-
-                // 6. 遍历并读取每个 Comment
-                for (int k = 0; k < comment_count; ++k) {
-                    int c_floor, c_reply_floor;
-                    string c_content, c_author_id;
-                    
-                    in_file.read(reinterpret_cast<char*>(&c_floor), sizeof(c_floor));
-                    in_file.read(reinterpret_cast<char*>(&c_reply_floor), sizeof(c_reply_floor));
-                    readString(in_file, c_content);
-                    readString(in_file, c_author_id);
-                    
-                    // --- 关键点：此时 author 传 nullptr，稍后重建 ---
-                    Comment comment(nullptr, c_content, c_reply_floor);
-                    comment.set_floor(c_floor);
-                    
-                    post.comment_list.add(comment); // 添加到 Post
-                    post_info.comment_author_ids.add(c_author_id); // 存储 ID 用于重建
-                }
-
-                // 7. 读取 Likes 数量
-                int like_count = 0;
-                in_file.read(reinterpret_cast<char*>(&like_count), sizeof(like_count));
-
-                // 8. 遍历并读取 Liker ID
-                for (int k = 0; k < like_count; ++k) {
-                    string liker_id;
-                    readString(in_file, liker_id);
-                    post_info.liker_ids.add(liker_id); // 存储 ID 用于重建
-                }
-                
-                client.posts.add(post); // 将 Post 添加到 Client
-                posts_to_link_list.add(post_info); // 存储此 Post 的链接信息
-            }
-            
-            clients.add(client); // 将 Client 添加到主列表
-        }
-    } catch (const exception& e) {
-        cerr << "[错误] 加载期间发生异常: " << e.what() << endl;
-        in_file.close();
-        clients.~SeqList(); // 清理已部分加载的数据
-        new (&clients) SeqList<Client>(100); // 重建为空列表
-        posts_to_link_list.~LinkList(); // 清理临时 list
-        new (&posts_to_link_list) LinkList<PostLoadInfo>();
-        return false;
-    }
-
-    in_file.close();
-    
-    // --- 关键一步：调用重建函数 ---
-    reconstructPointers(clients); 
-
-    // cout << "[成功] 数据已从 " << file << " 加载。" << endl; // 移到 main.cpp 中
+    temp_load_data.~LinkList();
+    new (&temp_load_data) LinkList<TempLoadData>();
     return true;
 }
