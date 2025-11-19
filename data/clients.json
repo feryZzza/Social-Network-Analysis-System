@@ -1,82 +1,126 @@
 {
   "clients": [
-    { "name": "张伟(技术宅)", "id": "zhangwei", "password": "pass1", "post_time": 1 },
-    { "name": "李静(生活派)", "id": "lijing", "password": "pass2", "post_time": 1 },
-    { "name": "王磊(杠精)", "id": "wanglei", "password": "pass3", "post_time": 0 },
-    { "name": "刘洋(吃货)", "id": "liuyang", "password": "pass4", "post_time": 0 },
-    { "name": "陈秀英(广场舞)", "id": "chenxiuying", "password": "pass5", "post_time": 1 }
+    { "name": "Admin(管理员)", "id": "admin", "password": "root", "post_time": 0 },
+    { "name": "Spammer(刷屏狂)", "id": "spammer", "password": "123456", "post_time": 0 },
+    { "name": "Ghost(幽灵)", "id": "ghost", "password": "boo", "post_time": 1 },
+    { "name": "DeepDiver(潜水员)", "id": "diver", "password": "deep", "post_time": 1 },
+    { "name": "Victim(受害者)", "id": "victim", "password": "help", "post_time": 2 }
   ],
   "posts": [
     {
-      "global_id": "zhangwei_1",
-      "author_id": "zhangwei",
-      "title": "深度解析 C++ 指针与引用",
-      "content": "指针是 C++ 的灵魂，也是新手的噩梦...",
-      "idex": 1,
-      "floor": 5,
-      "likers": ["lijing", "wanglei", "liuyang", "chenxiuying"]
-    },
-    {
-      "global_id": "lijing_1",
-      "author_id": "lijing",
-      "title": "心情不好",
-      "content": "想把账号注销了...",
+      "global_id": "ghost_1",
+      "author_id": "ghost",
+      "title": "我即将消失",
+      "content": "你看得见我吗？",
       "idex": 1,
       "floor": 2,
-      "likers": ["zhangwei"]
+      "likers": []
     },
     {
-      "global_id": "chenxiuying_1",
-      "author_id": "chenxiuying",
-      "title": "今晚广场舞集合",
-      "content": "老地方，不见不散！",
+      "global_id": "diver_1",
+      "author_id": "diver",
+      "title": "深海挑战",
+      "content": "我们将潜入第 10 层梦境。",
       "idex": 1,
-      "floor": 3,
-      "likers": ["liuyang"]
+      "floor": 11,
+      "likers": []
+    },
+    {
+      "global_id": "victim_1",
+      "author_id": "victim",
+      "title": "测试点赞贴",
+      "content": "请大家疯狂点赞！",
+      "idex": 1,
+      "floor": 2,
+      "likers": ["spammer"]
+    },
+    {
+      "global_id": "victim_2",
+      "author_id": "victim",
+      "title": "求助贴",
+      "content": "如果不删帖，请帮帮我。",
+      "idex": 2,
+      "floor": 1,
+      "likers": []
     }
   ],
   "comments": [
     {
-      "post_global_id": "zhangwei_1",
-      "author_id": "lijing",
-      "content": "太深奥了，大佬带带我！",
+      "post_global_id": "ghost_1",
+      "author_id": "admin",
+      "content": "我利用系统漏洞看到了这条被删的帖子！",
       "floor": 2,
       "reply_floor": -1
     },
     {
-      "post_global_id": "zhangwei_1",
-      "author_id": "wanglei",
-      "content": "这有什么难的？有手就行。",
+      "post_global_id": "diver_1",
+      "author_id": "diver",
+      "content": "潜入第 1 层",
+      "floor": 2,
+      "reply_floor": -1
+    },
+    {
+      "post_global_id": "diver_1",
+      "author_id": "admin",
+      "content": "潜入第 2 层 (回复第 2 楼)",
       "floor": 3,
       "reply_floor": 2
     },
     {
-      "post_global_id": "zhangwei_1",
-      "author_id": "liuyang",
-      "content": "楼上别站着说话不腰疼。",
+      "post_global_id": "diver_1",
+      "author_id": "diver",
+      "content": "潜入第 3 层 (回复第 3 楼)",
       "floor": 4,
       "reply_floor": 3
     },
     {
-      "post_global_id": "zhangwei_1",
-      "author_id": "zhangwei",
-      "content": "大家理性讨论，别吵架。",
+      "post_global_id": "diver_1",
+      "author_id": "admin",
+      "content": "潜入第 4 层 (回复第 4 楼)",
       "floor": 5,
-      "reply_floor": -1
+      "reply_floor": 4
     },
     {
-      "post_global_id": "lijing_1",
-      "author_id": "chenxiuying",
-      "content": "妹子别想不开，来跳舞！",
-      "floor": 2,
-      "reply_floor": -1
+      "post_global_id": "diver_1",
+      "author_id": "diver",
+      "content": "潜入第 5 层 (回复第 5 楼)",
+      "floor": 6,
+      "reply_floor": 5
     },
     {
-      "post_global_id": "chenxiuying_1",
-      "author_id": "wanglei",
-      "content": "阿姨们注意身体，支持！",
-      "floor": 3,
-      "reply_floor": -1
+      "post_global_id": "diver_1",
+      "author_id": "admin",
+      "content": "潜入第 6 层 (回复第 6 楼)",
+      "floor": 7,
+      "reply_floor": 6
+    },
+    {
+      "post_global_id": "diver_1",
+      "author_id": "diver",
+      "content": "潜入第 7 层 (回复第 7 楼)",
+      "floor": 8,
+      "reply_floor": 7
+    },
+    {
+      "post_global_id": "diver_1",
+      "author_id": "admin",
+      "content": "潜入第 8 层 (回复第 8 楼)",
+      "floor": 9,
+      "reply_floor": 8
+    },
+    {
+      "post_global_id": "diver_1",
+      "author_id": "diver",
+      "content": "潜入第 9 层 (回复第 9 楼)",
+      "floor": 10,
+      "reply_floor": 9
+    },
+    {
+      "post_global_id": "diver_1",
+      "author_id": "admin",
+      "content": "潜入第 10 层 (回复第 10 楼)",
+      "floor": 11,
+      "reply_floor": 10
     }
   ]
 }
