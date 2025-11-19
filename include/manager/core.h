@@ -19,7 +19,7 @@ enum CoreStatus {
     ERR_CLIENT_NOT_FOUND,
     ERR_POST_NOT_FOUND,
     ERR_COMMENT_NOT_FOUND,
-    ERR_NO_ACTION_TO_UNDO, // <--- 添加这一行
+    ERR_NO_ACTION_TO_UNDO, 
     ERR_ACTION_INVALID,
     ERR_UNKNOWN
 };
@@ -78,6 +78,10 @@ public:
     
     // 用户读取消息
     void userReadMessages(Client* client);
+
+    // --- [新增] 高级功能：内容分析与压缩预览 ---
+    // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压
+    void analyzePostContent(Post* post);
 };
 
 #endif

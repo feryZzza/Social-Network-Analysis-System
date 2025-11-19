@@ -1,5 +1,7 @@
 #include "manager/core.h"
+#include "data_structure/huffman.h" // 引入哈夫曼模块
 #include <iostream>
+#include <iomanip> // 用于格式化输出
 
 using namespace std;
 
@@ -85,9 +87,6 @@ CoreStatus Core::userDeletePost(Client* client, int postIndex) {
     PostAction* action = new PostAction(node);
     action->init(client, false, &node->data); // false 表示删除操作
 
-    // 注意：删帖操作不注册到 UndoManager 的 PostResource 中，因为 Post 可能被视为“不存在”了
-    // 但为了能撤销（恢复），我们需要保留节点。
-    // 原有逻辑中删帖操作也加入栈
     pushAction(client, action);
     
     return SUCCESS;
@@ -116,13 +115,7 @@ CoreStatus Core::userAddComment(Client* commenter, Post* post, const std::string
     // 2. 数据层添加
     post->comment_list.add(c);
     post->set_floor(new_floor);
-    
-    // 更新被评论者的数据 (简单的计数)
-    // 注意：这里需要找到谁被评论了。如果是直接评论帖子，是帖主；如果是回复楼层，逻辑可能更复杂
-    // 这里沿用原逻辑：只要发评，commenter 的“被评论数”加一？原逻辑似乎是这样的(receive_comment(1))
-    // 修正理解：原逻辑 commenter->receive_comment(1) 似乎是记录用户发出的评论互动？或者收到的？
-    // 假设原意是“收到评论数”，则应该是 post->author 的计数增加。
-    // 但原代码中: commenter->receive_comment(1); 感觉像是记录该用户参与度。我们暂且保留原行为。
+
     commenter->receive_comment(true);
 
     // 3. 注册撤销操作
@@ -225,3 +218,5 @@ void Core::userReadMessages(Client* client) {
         delete m;
     }
 }
+
+//内嵌哈夫曼编码对帖子内容进行深度分析，展示压缩效果

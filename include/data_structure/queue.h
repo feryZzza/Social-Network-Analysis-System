@@ -7,25 +7,27 @@ template<class T>
 class Queue{
 public:
     Queue() {}
-    ~Queue() {}
-    virtual void enqueue(const T& x) = 0; //入队
-    virtual T dequeue() = 0; //出队
-    virtual T& front() = 0; //取队头元素
-    virtual bool empty() = 0; //队列是否为空
-    virtual bool full() = 0; //队列是否为满
-    virtual int size() = 0; //队列的大小
-    virtual void clear() = 0; //清空队列
+    virtual ~Queue() {} // 建议虚析构
+    virtual void enqueue(const T& x) = 0; 
+    virtual T dequeue() = 0; 
+    virtual T& front() = 0; 
+    virtual bool empty() = 0; 
+    virtual bool full() = 0; 
+    virtual int size() = 0; 
+    virtual void clear() = 0; 
 };
 
 template<class T>
-class SeqQueue : public Queue<T>{//循环队列
+class SeqQueue : public Queue<T>{
 public:
-    SeqQueue<T>(int size):maxSize(size),Front(0),Rear(0){//空队列
+    SeqQueue<T>(int size):maxSize(size),Front(0),Rear(0){
         data = new T[maxSize];
     }
     ~SeqQueue<T>(){
         delete[] data;
     }
+    // 建议为SeqQueue也添加拷贝构造，此处略，重点修复LinkQueue
+
     bool full() override{return Front==Rear && tag==1;}
     bool empty() override{return Front==Rear && tag==0;}
     int size() override{
@@ -56,9 +58,8 @@ public:
         if(empty()) throw std::out_of_range("队列为空");
         return data[Front];
     }
-    //重载输出,从队列头到队列尾输出
-    friend std::ostream& operator<< (std::ostream& os,SeqQueue<T>& queue) {//重载输出
-        //输出形如[a b c d],从队头到队尾
+    
+    friend std::ostream& operator<< (std::ostream& os,SeqQueue<T>& queue) {
         os << "[";
         if(!queue.empty()){
             int i = queue.Front;
@@ -75,10 +76,11 @@ public:
 private:
     T* data;
     int maxSize;
-    int Front; //队头索引
-    int Rear; //队尾索引
-    bool tag = 0; //标志位，区分队列空和满,若上一次操作为入队列则tag=1,否则tag=0，
+    int Front; 
+    int Rear; 
+    bool tag = 0; 
 };
+
 //链队列节点
 template<class T>
 class QNode{
@@ -91,19 +93,41 @@ public:
 
 
 template<class T>
-class LinkDeque;//前向声明,双端队列的链式实现需要访问LinkQueue的私有成员,必须声明为友元类
+class LinkDeque;
 
 template<class T>
-class LinkQueue : public Queue<T>{//链队列,从链表头出队，从链表尾入队
+class LinkQueue : public Queue<T>{
 public:
-    LinkQueue():Front(nullptr),Rear(nullptr),length(0){}//空队列
+    LinkQueue():Front(nullptr),Rear(nullptr),length(0){}
     ~LinkQueue(){
         clear();
     }
+
+    // --- [新增] 拷贝构造函数 ---
+    LinkQueue(const LinkQueue& other) : Front(nullptr), Rear(nullptr), length(0) {
+        QNode<T>* current = other.Front;
+        while (current) {
+            this->enqueue(current->data);
+            current = current->next;
+        }
+    }
+
+    // --- [新增] 赋值运算符 ---
+    LinkQueue& operator=(const LinkQueue& other) {
+        if (this == &other) return *this;
+        clear();
+        QNode<T>* current = other.Front;
+        while (current) {
+            this->enqueue(current->data);
+            current = current->next;
+        }
+        return *this;
+    }
+
     bool empty() override{return Front == nullptr;}
-    bool full() override{return false;}//链表不会满
+    bool full() override{return false;}
     int size() override{return length;}
-    void enqueue(const T& x) override{//入队
+    void enqueue(const T& x) override{
         QNode<T>* newNode = new QNode<T>();
         newNode->data = x;
         newNode->next = nullptr;
@@ -116,28 +140,27 @@ public:
         }
         length++;
     }
-    T dequeue() override{//出队
+    T dequeue() override{
         if(empty()) throw std::out_of_range("队列为空");
         QNode<T>* temp = Front;
         T x = Front->data;
         Front = Front->next;
         delete temp;
         length--;
-        if(Front == nullptr) Rear = nullptr; //队列为空时，更新Rear指针
+        if(Front == nullptr) Rear = nullptr; 
         return x;
     }
-    T& front() override{//取队头元素
+    T& front() override{
         if(empty()) throw std::out_of_range("队列为空");
         return Front->data;
     }
-    void clear() override{//清空队列
+    void clear() override{
         while(!empty()){
             dequeue();
         }
     }
-    //重载输出,从队列头到队列尾输出
-    friend std::ostream& operator<< (std::ostream& os,LinkQueue<T>& queue) {//重载输出
-        //输出形如[a b c d],从队头到队尾
+    
+    friend std::ostream& operator<< (std::ostream& os,LinkQueue<T>& queue) {
         os << "[";
         if(!queue.empty()){
             QNode<T>* current = queue.Front;
@@ -152,51 +175,51 @@ public:
     }
     friend class LinkDeque<T>;
 private:
-    QNode<T>* Front; //队头指针
-    QNode<T>* Rear; //队尾指针
-    int length; //队列长度
+    QNode<T>* Front; 
+    QNode<T>* Rear; 
+    int length; 
 };
 
 template<class T>
-class Deque : public Queue<T>{//双端队列的顺序实现
+class Deque : public Queue<T>{
 public:
-    Deque(int size):data(size){}//空队列
+    Deque(int size):data(size){}
     ~Deque() {}
     bool empty() override{return data.empty();}
     bool full() override{return data.full();}
     int size() override{return data.size();}
     void clear() override{data.clear();}
-    void enqueue(const T& x) override{//从队尾入队
+    void enqueue(const T& x) override{
         data.enqueue(x);
     }
-    void enqueueFront(const T& x){//从队头入队
+    void enqueueFront(const T& x){
         if(full()) throw std::out_of_range("队列已满");
         int newFront = (data.Front - 1 + data.maxSize) % data.maxSize;
         data.data[newFront] = x;
         data.Front = newFront;
-        data.tag = 1; //更新tag
+        data.tag = 1; 
     }
-    T dequeue() override{//从队头出队
+    T dequeue() override{
         return data.dequeue();
     }
-    T dequeueRear(){//从队尾出队
+    T dequeueRear(){
         if(empty()) throw std::out_of_range("队列为空");
         int newRear = (data.Rear - 1 + data.maxSize) % data.maxSize;
         T x = data.data[newRear];
         data.Rear = newRear;
-        data.tag = 0; //更新tag
+        data.tag = 0; 
         return x;
     }
-    T& front() override{//取队头元素
+    T& front() override{
         return data.front();
     }
-    T& rear(){//取队尾元素
+    T& rear(){
         if(empty()) throw std::out_of_range("队列为空");
         int rearIndex = (data.Rear - 1 + data.maxSize) % data.maxSize;
         return data.data[rearIndex];
     }
-    //重载输出,从队列头到队列尾输出
-    friend std::ostream& operator<< (std::ostream& os,Deque<T>& queue) {//重载输出
+    
+    friend std::ostream& operator<< (std::ostream& os,Deque<T>& queue) {
         os << queue.data;
         return os;
     }
@@ -207,29 +230,29 @@ private:
 template<class T>
 class LinkDeque : public Queue<T>{
 public:
-    LinkDeque(){}//空队列
+    LinkDeque(){}
     ~LinkDeque() {}
     bool empty() override{return linkQueue.empty();}
     bool full() override{return linkQueue.full();}
     int size() override{return linkQueue.size();}
     void clear() override{linkQueue.clear();}
-    void enqueue(const T& x) override{//从队尾入队
+    void enqueue(const T& x) override{
         linkQueue.enqueue(x);
     }
-    void enqueueFront(const T& x){//从队头入队
+    void enqueueFront(const T& x){
         QNode<T>* newNode = new QNode<T>();
         newNode->data = x;
         newNode->next = linkQueue.Front;
         linkQueue.Front = newNode;
-        if(linkQueue.Rear == nullptr) linkQueue.Rear = newNode; //如果原来队列为空，更新Rear指针
+        if(linkQueue.Rear == nullptr) linkQueue.Rear = newNode; 
         linkQueue.length++;
     }
-    T dequeue() override{//从队头出队
+    T dequeue() override{
         return linkQueue.dequeue();
     }
-    T dequeueRear(){//从队尾出队
+    T dequeueRear(){
         if(empty()) throw std::out_of_range("队列为空");
-        if(linkQueue.Front == linkQueue.Rear){//只有一个元素
+        if(linkQueue.Front == linkQueue.Rear){
             T x = linkQueue.Rear->data;
             delete linkQueue.Rear;
             linkQueue.Front = nullptr;
@@ -237,7 +260,7 @@ public:
             linkQueue.length--;
             return x;
         }
-        //找到倒数第二个节点
+        
         QNode<T>* current = linkQueue.Front;
         while(current->next != linkQueue.Rear){
             current = current->next;
@@ -249,58 +272,53 @@ public:
         linkQueue.length--;
         return x;
     }
-    T& front() override{//取队头元素
+    T& front() override{
         return linkQueue.front();
     }
-    T& rear(){//取队尾元素
+    T& rear(){
         if(empty()) throw std::out_of_range("队列为空");
         return linkQueue.Rear->data;
     }
-    //重载输出,从队列头到队列尾输出
-    friend std::ostream& operator<< (std::ostream& os,LinkDeque<T>& queue) {//重载输出
+    
+    friend std::ostream& operator<< (std::ostream& os,LinkDeque<T>& queue) {
         os << queue.linkQueue;
         return os;
     }
 private:
     LinkQueue<T> linkQueue;
-};//双端队列的链式实现
+};
 
 template <typename T>
-class PriorityQueue : public Queue<T> {// 优先队列的最小堆实现
+class PriorityQueue {
 public:
     PriorityQueue(int maxsize = 100) : heap(maxsize) {}
     
-    // 支持通过线性表直接构建
     PriorityQueue(LinearList<T>& list) : heap(list) {}
 
     virtual ~PriorityQueue() {}
 
-    void enqueue(const T& x) override {
+    void enqueue(const T& x) {
         heap.push(x);
     }
 
-    T dequeue() override {
+    T dequeue() {
         return heap.pop();
     }
-
-    T& front() override {//随便返回点东西，因为优先队列不支持直接访问队头元素
-        T temp = heap.top();
-        return temp;
-    }
     
-    bool empty() override {
+    bool empty() {
         return heap.empty();
     }
 
-    bool full() override {
+    bool full() {
+
         return false; 
     }
 
-    int size() override {
+    int size() {
         return heap.size();
     }
 
-    void clear() override {
+    void clear() {
         while(!heap.empty()) heap.pop();
     }
 

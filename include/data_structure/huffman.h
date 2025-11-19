@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 #include "data_structure/lin_list.h"
-#include "data_structure/tree.h"
+#include "data_structure/tree.h" // 依然引用 TreeNode 定义
 #include "data_structure/heap.h"
 
 using std::string;
@@ -22,18 +22,15 @@ public:
         return os;
     }
     
-    // 比较运算符，虽然我们在 NodeWrapper 里处理了比较，但保留这些是个好习惯
     bool operator<(const HuffmanData& other) const { return weight < other.weight; }
     bool operator>(const HuffmanData& other) const { return weight > other.weight; }
     bool operator==(const HuffmanData& other) const { return weight == other.weight; }
 };
 
-// 特化 TreeNode
+// 使用 tree.h 中的 TreeNode，但不继承 BinaryTree 类
 typedef TreeNode<HuffmanData> HuffmanNode;
 
-
-
-// 频率对 (替代 map<string, int>)
+// 频率对
 struct FreqPair {
     string data;
     int weight;
@@ -41,7 +38,7 @@ struct FreqPair {
     bool operator==(const FreqPair& other) const { return data == other.data; }
 };
 
-// 编码对 (替代 map<string, string>)
+// 编码对
 struct CodePair {
     string data;
     string code;
@@ -49,28 +46,36 @@ struct CodePair {
     bool operator==(const CodePair& other) const { return data == other.data; }
 };
 
-// --- 哈夫曼树类 ---
-class HuffmanTree : public BinaryTree<HuffmanData> {
+// --- 哈夫曼树类 (独立类) ---
+class HuffmanTree {
 public:
     // 构造函数：接收频率列表构建树
     HuffmanTree(SeqList<FreqPair>& frequencies);
     
-    // 析构函数：基类 BinaryTree 会自动释放节点内存
-    ~HuffmanTree() = default;
+    // 析构函数：需要自己实现内存清理
+    ~HuffmanTree();
+
+    // 显式禁用拷贝构造和赋值，防止 Double Free
+    HuffmanTree(const HuffmanTree&) = delete;
+    HuffmanTree& operator=(const HuffmanTree&) = delete;
 
     // 核心功能
     void generateCodes();
     string compress(const string& text);
     string decompress(const string& compressedText);
     
-    // 原有功能：计算带权路径长度
+    // 计算带权路径长度
     double getWPL();
 
     // 调试功能
     void printCodes();
 
 private:
+    HuffmanNode* root;       // 树根指针 (自己管理)
     SeqList<CodePair> codes; // 存储生成的编码表
+
+    // 递归销毁树
+    void destroy(HuffmanNode* node);
 
     // 递归辅助生成编码
     void generateCodesRecursive(HuffmanNode* node, string currentCode);

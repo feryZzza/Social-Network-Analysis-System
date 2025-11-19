@@ -2,7 +2,7 @@
 #define HEAP_H
 
 #include <algorithm> // std::swap
-#include "data_structure/lin_list.h" // 用于堆的构造函数
+#include "data_structure/lin_list.h" 
 
 //虽然堆按照定义来说是一个完全二叉树结构，但为了性能和简化实现，通常使用数组来存储堆，所以不把堆放到树结构文件中
 template <typename T>
@@ -33,6 +33,25 @@ public:
         delete[] heap;
     }
 
+    MinHeap(const MinHeap& other) : maxsize(other.maxsize), currentSize(other.currentSize) {
+        heap = new T[maxsize];
+        for(int i=0; i<currentSize; ++i) {
+            heap[i] = other.heap[i];
+        }
+    }
+
+    MinHeap& operator=(const MinHeap& other) {
+        if(this == &other) return *this;
+        delete[] heap;
+        maxsize = other.maxsize;
+        currentSize = other.currentSize;
+        heap = new T[maxsize];
+        for(int i=0; i<currentSize; ++i) {
+            heap[i] = other.heap[i];
+        }
+        return *this;
+    }
+
     void push(T val) {
         if (currentSize >= maxsize) return;
         heap[currentSize] = val;
@@ -53,6 +72,8 @@ public:
         if (currentSize == 0) return T();
         return heap[0];
     }
+
+    bool full() const { return currentSize >= maxsize; }
 
     bool empty() const { return currentSize == 0; }
     int size() const { return currentSize; }
@@ -110,18 +131,36 @@ public:
         maxsize = currentSize + 100;
         heap = new T[maxsize];
 
-        // 1. 复制数据
         for (int i = 0; i < currentSize; ++i) {
             list.getx(i, heap[i]);
         }
 
-        // 2. 下沉建堆
         if (currentSize > 1) {
             for (int i = (currentSize - 2) / 2; i >= 0; --i) {
                 siftDown(i);
             }
         }
     }
+
+    MaxHeap(const MaxHeap& other) : maxsize(other.maxsize), currentSize(other.currentSize) {
+        heap = new T[maxsize];
+        for(int i=0; i<currentSize; ++i) {
+            heap[i] = other.heap[i];
+        }
+    }
+
+    MaxHeap& operator=(const MaxHeap& other) {
+        if(this == &other) return *this;
+        delete[] heap; // 别忘了删掉旧的
+        maxsize = other.maxsize;
+        currentSize = other.currentSize;
+        heap = new T[maxsize];
+        for(int i=0; i<currentSize; ++i) {
+            heap[i] = other.heap[i];
+        }
+        return *this;
+    }
+
 
     ~MaxHeap() {
         delete[] heap;
@@ -147,6 +186,8 @@ public:
         if (currentSize == 0) return T();
         return heap[0];
     }
+
+    bool full() const { return currentSize >= maxsize; }
 
     bool empty() const { return currentSize == 0; }
     int size() const { return currentSize; }
