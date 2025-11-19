@@ -1,143 +1,189 @@
 #include "data_structure/huffman.h"
+#include "data_structure/queue.h" // 引入 PriorityQueue
 #include <iostream>
-#include <vector>
 
 using namespace std;
 
-// 词频统计函数实现
-map<string, int> countFrequency(const string& text) {
-    map<string, int> frequencies;
+// --- 辅助函数：统计词频 ---
+void countFrequency(const string& text, SeqList<FreqPair>& outFreqs) {
     for (size_t i = 0; i < text.length();) {
         int char_len = 1;
-        // 判断UTF-8字符字节数
-        if ((text[i] & 0xE0) == 0xC0) { // 2字节
-            char_len = 2;
-        } else if ((text[i] & 0xF0) == 0xE0) { // 3字节
-            char_len = 3;
-        } else if ((text[i] & 0xF8) == 0xF0) { // 4字节
-            char_len = 4;
+        // 判断 UTF-8 字符字节数
+        unsigned char c = static_cast<unsigned char>(text[i]);
+        if ((c & 0xE0) == 0xC0) char_len = 2;
+        else if ((c & 0xF0) == 0xE0) char_len = 3;
+        else if ((c & 0xF8) == 0xF0) char_len = 4;
+        
+        // 边界检查
+        if (i + char_len > text.length()) char_len = 1;
+
+        string sub = text.substr(i, char_len);
+        bool found = false;
+        // 在线性表中查找
+        for (int k = 0; k < outFreqs.size(); ++k) {
+            if (outFreqs[k].data == sub) {
+                outFreqs[k].weight++;
+                found = true;
+                break;
+            }
         }
-        // 确保不会超出字符串范围
-        if (i + char_len > text.length()) {
-            char_len = 1;
+        // 未找到则添加
+        if (!found && !outFreqs.full()) {
+            outFreqs.add(FreqPair(sub, 1));
         }
-        frequencies[text.substr(i, char_len)]++;
         i += char_len;
     }
-    return frequencies;
 }
 
+// --- 包装器：用于在通用堆中比较节点指针 ---
+struct NodeWrapper {
+    HuffmanNode* node;
 
-// HuffmanTree 构造函数
-HuffmanTree::HuffmanTree(const map<string, int>& frequencies) {
-    priority_queue<shared_ptr<HuffmanNode>, vector<shared_ptr<HuffmanNode>>, CompareNodes> pq;
+    NodeWrapper(HuffmanNode* n = nullptr) : node(n) {}
 
-    // 1. 创建叶子节点并加入优先队列
-    for (auto const& [key, val] : frequencies) {
-        pq.push(make_shared<HuffmanNode>(key, val));
+    // 重载 < 运算符，用于 MinHeap (PriorityQueue 默认是 MinHeap)
+    bool operator<(const NodeWrapper& other) const {
+        if (!node) return false;
+        if (!other.node) return true;
+        return *node < *other.node;
+    }
+    
+    bool operator>(const NodeWrapper& other) const {
+        if (!node) return true;
+        if (!other.node) return false;
+        return *node > *other.node;
+    }
+};
+
+// --- HuffmanTree 实现 ---
+
+HuffmanTree::HuffmanTree(SeqList<FreqPair>& frequencies) : codes(256) {
+    // 使用 PriorityQueue 替代 MinHeap
+    PriorityQueue<NodeWrapper> pq(frequencies.size() + 10);
+
+    // 1. 初始化堆
+    for (int i = 0; i < frequencies.size(); ++i) {
+        HuffmanData data(frequencies[i].data, frequencies[i].weight);
+        // enqueue 替代 push
+        pq.enqueue(NodeWrapper(new HuffmanNode(data)));
     }
 
     // 2. 构建哈夫曼树
     while (pq.size() > 1) {
-        // 取出权重最小的两个节点
-        shared_ptr<HuffmanNode> left = pq.top();
-        pq.pop();
-        shared_ptr<HuffmanNode> right = pq.top();
-        pq.pop();
+        // dequeue 替代 pop
+        HuffmanNode* left = pq.dequeue().node;
+        HuffmanNode* right = pq.dequeue().node;
 
-        // 创建新的内部节点
-        auto parent = make_shared<HuffmanNode>("", left->weight + right->weight);
+        int sumWeight = left->data.weight + right->data.weight;
+        HuffmanNode* parent = new HuffmanNode(HuffmanData("", sumWeight));
+        
         parent->left = left;
         parent->right = right;
-        pq.push(parent);
+
+        pq.enqueue(NodeWrapper(parent));
     }
 
-    root = pq.top();
+    // 3. 设置树根
+    if (!pq.empty()) {
+        this->root = pq.dequeue().node;
+    } else {
+        this->root = nullptr;
+    }
 }
 
-// 递归生成哈夫曼编码
-void HuffmanTree::generateCodesRecursive(const shared_ptr<HuffmanNode>& node, const string& code) {
-    if (!node) {
+void HuffmanTree::generateCodesRecursive(HuffmanNode* node, string currentCode) {
+    if (!node) return;
+
+    if (!node->left && !node->right) {
+        if (codes.full()) return;
+        codes.add(CodePair(node->data.charData, currentCode));
+    }
+
+    generateCodesRecursive(node->left, currentCode + "0");
+    generateCodesRecursive(node->right, currentCode + "1");
+}
+
+void HuffmanTree::generateCodes() {
+    if (!root) return;
+    
+    if (!root->left && !root->right) {
+        codes.add(CodePair(root->data.charData, "0"));
         return;
     }
-    // 如果是叶子节点，存储编码
-    if (!node->left && !node->right) {
-        codes[node->data] = code;
-    }
-    generateCodesRecursive(node->left, code + "0");
-    generateCodesRecursive(node->right, code + "1");
-}
-
-// 公有接口：生成编码
-void HuffmanTree::generateCodes() {
+    
     generateCodesRecursive(root, "");
 }
 
-// 压缩
-string HuffmanTree::compress(const string& text) {
-    string compressedText = "";
-    for (size_t i = 0; i < text.length();) {
-        int char_len = 1;
-        if ((text[i] & 0xE0) == 0xC0) {
-            char_len = 2;
-        } else if ((text[i] & 0xF0) == 0xE0) {
-            char_len = 3;
-        } else if ((text[i] & 0xF8) == 0xF0) {
-            char_len = 4;
-        }
-        if (i + char_len > text.length()) {
-            char_len = 1;
-        }
-        compressedText += codes[text.substr(i, char_len)];
-        i += char_len;
-    }
-    return compressedText;
-}
+// 计算 WPL
+void HuffmanTree::calculateWPLRecursive(HuffmanNode* node, int depth, double& wpl) {
+    if (!node) return;
 
-
-// 解压
-string HuffmanTree::decompress(const string& compressedText) {
-    string decompressedText = "";
-    auto currentNode = root;
-    for (char bit : compressedText) {
-        if (bit == '0') {
-            currentNode = currentNode->left;
-        } else {
-            currentNode = currentNode->right;
-        }
-
-        // 到达叶子节点
-        if (!currentNode->left && !currentNode->right) {
-            decompressedText += currentNode->data;
-            currentNode = root; // 重置回根节点
-        }
-    }
-    return decompressedText;
-}
-
-// 递归计算WPL
-void HuffmanTree::calculateWPLRecursive(const shared_ptr<HuffmanNode>& node, int depth, double& wpl) {
-    if (!node) {
-        return;
-    }
     if (!node->left && !node->right) {
-        wpl += node->weight * depth;
+        wpl += node->data.weight * depth;
     }
+
     calculateWPLRecursive(node->left, depth + 1, wpl);
     calculateWPLRecursive(node->right, depth + 1, wpl);
 }
 
-// 公有接口：获取WPL
 double HuffmanTree::getWPL() {
     double wpl = 0.0;
     calculateWPLRecursive(root, 0, wpl);
     return wpl;
 }
 
-// 打印哈夫曼编码
+string HuffmanTree::getCode(const string& character) {
+    for (int i = 0; i < codes.size(); ++i) {
+        if (codes[i].data == character) {
+            return codes[i].code;
+        }
+    }
+    return "";
+}
+
+string HuffmanTree::compress(const string& text) {
+    string compressedText = "";
+    for (size_t i = 0; i < text.length();) {
+        int char_len = 1;
+        unsigned char c = static_cast<unsigned char>(text[i]);
+        if ((c & 0xE0) == 0xC0) char_len = 2;
+        else if ((c & 0xF0) == 0xE0) char_len = 3;
+        else if ((c & 0xF8) == 0xF0) char_len = 4;
+        
+        if (i + char_len > text.length()) char_len = 1;
+
+        string sub = text.substr(i, char_len);
+        compressedText += getCode(sub);
+        
+        i += char_len;
+    }
+    return compressedText;
+}
+
+string HuffmanTree::decompress(const string& compressedText) {
+    if (!root) return "";
+    
+    string decompressedText = "";
+    HuffmanNode* currentNode = root;
+    
+    for (char bit : compressedText) {
+        if (bit == '0') {
+            if (currentNode->left) currentNode = currentNode->left;
+        } else {
+            if (currentNode->right) currentNode = currentNode->right;
+        }
+
+        if (!currentNode->left && !currentNode->right) {
+            decompressedText += currentNode->data.charData;
+            currentNode = root; 
+        }
+    }
+    return decompressedText;
+}
+
 void HuffmanTree::printCodes() {
     cout << "Huffman Codes:" << endl;
-    for (auto const& [key, val] : codes) {
-        cout << "'" << key << "' : " << val << endl;
+    for (int i = 0; i < codes.size(); ++i) {
+        cout << "'" << codes[i].data << "' : " << codes[i].code << endl;
     }
 }

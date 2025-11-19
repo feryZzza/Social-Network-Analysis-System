@@ -2,61 +2,87 @@
 #define HUFFMAN_H
 
 #include <string>
-#include <vector>
-#include <map>
-#include <queue>
-#include <memory> // 用于智能指针
+#include <iostream>
+#include "data_structure/lin_list.h"
+#include "data_structure/tree.h"
+#include "data_structure/heap.h"
 
-using namespace std;
+using std::string;
 
-// 哈夫曼树节点
-struct HuffmanNode {
-    string data; // 字符
-    int weight; // 权重（频率）
-    shared_ptr<HuffmanNode> left;
-    shared_ptr<HuffmanNode> right;
-
-    HuffmanNode(string d, int w) : data(d), weight(w), left(nullptr), right(nullptr) {}
-};
-
-// 用于优先队列的比较结构
-struct CompareNodes {
-    bool operator()(const shared_ptr<HuffmanNode>& a, const shared_ptr<HuffmanNode>& b) const {
-        return a->weight > b->weight; // 最小堆
-    }
-};
-
-class HuffmanTree {
+// 哈夫曼树节点具体存储的数据
+class HuffmanData {
 public:
-    // 构造函数
-    HuffmanTree(const map<string, int>& frequencies);
+    string charData; // 字符
+    int weight;      // 权重
 
-    // 生成哈夫曼编码
+    HuffmanData(string c = "", int w = 0) : charData(c), weight(w) {}
+    
+    friend std::ostream& operator<<(std::ostream& os, const HuffmanData& d) {
+        os << "[" << d.charData << ":" << d.weight << "]";
+        return os;
+    }
+    
+    // 比较运算符，虽然我们在 NodeWrapper 里处理了比较，但保留这些是个好习惯
+    bool operator<(const HuffmanData& other) const { return weight < other.weight; }
+    bool operator>(const HuffmanData& other) const { return weight > other.weight; }
+    bool operator==(const HuffmanData& other) const { return weight == other.weight; }
+};
+
+// 特化 TreeNode
+typedef TreeNode<HuffmanData> HuffmanNode;
+
+
+
+// 频率对 (替代 map<string, int>)
+struct FreqPair {
+    string data;
+    int weight;
+    FreqPair(string d = "", int w = 0) : data(d), weight(w) {}
+    bool operator==(const FreqPair& other) const { return data == other.data; }
+};
+
+// 编码对 (替代 map<string, string>)
+struct CodePair {
+    string data;
+    string code;
+    CodePair(string d = "", string c = "") : data(d), code(c) {}
+    bool operator==(const CodePair& other) const { return data == other.data; }
+};
+
+// --- 哈夫曼树类 ---
+class HuffmanTree : public BinaryTree<HuffmanData> {
+public:
+    // 构造函数：接收频率列表构建树
+    HuffmanTree(SeqList<FreqPair>& frequencies);
+    
+    // 析构函数：基类 BinaryTree 会自动释放节点内存
+    ~HuffmanTree() = default;
+
+    // 核心功能
     void generateCodes();
-
-    // 压缩文本
     string compress(const string& text);
-
-    // 解压文本
     string decompress(const string& compressedText);
-
-    // 计算加权路径长度 (WPL)
+    
+    // 原有功能：计算带权路径长度
     double getWPL();
 
-    // 打印哈夫曼编码
+    // 调试功能
     void printCodes();
 
 private:
-    shared_ptr<HuffmanNode> root;
-    map<string, string> codes;
+    SeqList<CodePair> codes; // 存储生成的编码表
 
-    // 递归辅助函数来生成编码
-    void generateCodesRecursive(const shared_ptr<HuffmanNode>& node, const string& code);
-    // 递归辅助函数来计算WPL
-    void calculateWPLRecursive(const shared_ptr<HuffmanNode>& node, int depth, double& wpl);
+    // 递归辅助生成编码
+    void generateCodesRecursive(HuffmanNode* node, string currentCode);
+    
+    // 递归辅助计算 WPL
+    void calculateWPLRecursive(HuffmanNode* node, int depth, double& wpl);
+
+    // 辅助查找字符编码
+    string getCode(const string& character);
 };
 
-// 词频统计函数
-map<string, int> countFrequency(const string& text);
+// 工具函数：统计词频
+void countFrequency(const string& text, SeqList<FreqPair>& outFreqs);
 
 #endif // HUFFMAN_H

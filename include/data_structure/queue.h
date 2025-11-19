@@ -2,6 +2,7 @@
 #define QUEUE_H
 
 #include <iostream>
+#include "data_structure/heap.h"
 template<class T>
 class Queue{
 public:
@@ -263,5 +264,48 @@ public:
 private:
     LinkQueue<T> linkQueue;
 };//双端队列的链式实现
+
+template <typename T>
+class PriorityQueue : public Queue<T> {// 优先队列的最小堆实现
+public:
+    PriorityQueue(int maxsize = 100) : heap(maxsize) {}
+    
+    // 支持通过线性表直接构建
+    PriorityQueue(LinearList<T>& list) : heap(list) {}
+
+    virtual ~PriorityQueue() {}
+
+    void enqueue(const T& x) override {
+        heap.push(x);
+    }
+
+    T dequeue() override {
+        return heap.pop();
+    }
+
+    T& front() override {//随便返回点东西，因为优先队列不支持直接访问队头元素
+        T temp = heap.top();
+        return temp;
+    }
+    
+    bool empty() override {
+        return heap.empty();
+    }
+
+    bool full() override {
+        return false; 
+    }
+
+    int size() override {
+        return heap.size();
+    }
+
+    void clear() override {
+        while(!heap.empty()) heap.pop();
+    }
+
+private:
+    MinHeap<T> heap; 
+};
 
 #endif
