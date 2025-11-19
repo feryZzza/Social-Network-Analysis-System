@@ -9,6 +9,8 @@
 #include "data_structure/lin_list.h"
 #include "manager/undo_manager.h"
 #include "manager/file_manager.h"
+#include "data_structure/huffman.h" // 引入哈夫曼模块
+#include "data_structure/search_tree.h" // 引入搜索树模块
 #include <string>
 
 // 定义操作状态码
@@ -24,9 +26,41 @@ enum CoreStatus {
     ERR_UNKNOWN
 };
 
+class AVL_node {
+public:
+    std::string name; // 存储名字副本，用于比较键
+    Client* client;   // 指向实际数据的指针
+    // 构造函数：传入指针，自动提取名字
+    AVL_node(Client* c) : client(c) {
+        if (c) name = c->Name();
+    }
+    // 构造函数：传入名字和指针（用于查找时构造临时对象）
+    AVL_node(std::string n, Client* c = nullptr) : name(n), client(c) {}
+
+    // 比较运算符重载：只比较 name
+    bool operator==(const AVL_node& other) const {//理论上不允许重名
+        return this->name == other.name;
+    }
+    bool operator<(const AVL_node& other) const {
+        return this->name < other.name;
+    }
+    bool operator>(const AVL_node& other) const {
+        return this->name > other.name;
+    }
+    bool operator<=(const AVL_node& other) const {//理论上不允许重名
+        return this->name <= other.name;
+    }
+    bool operator>=(const AVL_node& other) const {//理论上不允许重名
+        return this->name >= other.name;
+    }
+};
+
 class Core {
 private:
+
     SeqList<Client> all_clients; // 系统维护的所有客户端数据
+    AVLTree<AVL_node> client_index; // 使用 AVL_node 作为索引元素
+    bool is_avl_init = false; //平衡树是否初始化 
     
     // 单例模式
     Core() : all_clients(100) {} 
@@ -37,6 +71,8 @@ private:
     void pushAction(Client* client, Action* action);
     // 内部辅助：发送消息
     void sendMessage(Client* sender, Client* receiver, Post* post, massege* msg);
+
+    void rebuildIndex();
 
 public:
     static Core& instance() {
@@ -50,7 +86,7 @@ public:
     
     SeqList<Client>& getAllClients() { return all_clients; }
     
-    Client* getClientById(const std::string& id);
+    Client* getClientByName(const std::string& name);
 
     // --- 业务功能 ---
 

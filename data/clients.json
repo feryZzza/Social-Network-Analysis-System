@@ -1,156 +1,33 @@
 {
   "clients": [
-    { "name": "Admin(管理员)", "id": "admin", "password": "root", "post_time": 0 },
-    { "name": "Spammer(刷屏狂)", "id": "spammer", "password": "123456", "post_time": 0 },
-    { "name": "Ghost(幽灵)", "id": "ghost", "password": "boo", "post_time": 1 },
-    { "name": "DeepDiver(潜水员)", "id": "diver", "password": "deep", "post_time": 2 },
-    { "name": "Victim(受害者)", "id": "victim", "password": "help", "post_time": 2 }
+    { "name": "Alice", "id": "id_001", "password": "pass1", "post_time": 1 },
+    { "name": "Bob", "id": "id_002", "password": "pass2", "post_time": 0 },
+    { "name": "Charlie", "id": "id_003", "password": "pass3", "post_time": 0 },
+    { "name": "Dave", "id": "id_004", "password": "pass4", "post_time": 0 },
+    { "name": "Eve", "id": "id_005", "password": "pass5", "post_time": 0 },
+    { "name": "Frank", "id": "id_006", "password": "pass6", "post_time": 1 }
   ],
   "posts": [
     {
-      "global_id": "ghost_1",
-      "author_id": "ghost",
-      "title": "我即将消失",
-      "content": "你看得见我吗？",
+      "global_id": "id_001_1",
+      "author_id": "id_001",
+      "title": "AVL树真好用",
+      "content": "查找速度飞快，再也不用遍历链表了！",
       "idex": 1,
       "floor": 2,
-      "likers": []
+      "likers": ["id_002"]
     },
     {
-      "global_id": "diver_1",
-      "author_id": "diver",
-      "title": "深海挑战",
-      "content": "我们将潜入第 10 层梦境。",
+      "global_id": "id_006_1",
+      "author_id": "id_006",
+      "title": "测试文本",
+      "content": "This is a test string for Huffman coding. We expect it to be compressed.",
       "idex": 1,
-      "floor": 11,
-      "likers": []
-    },
-    {
-      "global_id": "diver_2",
-      "author_id": "diver",
-      "title": "算法导论",
-      "content": "哈夫曼编码（Huffman Coding）是一种用于无损数据压缩的熵编码（权编码）算法。",
-      "idex": 2,
-      "floor": 4,
-      "likers": []
-    },
-    {
-      "global_id": "victim_1",
-      "author_id": "victim",
-      "title": "测试点赞贴",
-      "content": "请大家疯狂点赞！",
-      "idex": 1,
-      "floor": 2,
-      "likers": ["spammer"]
-    },
-    {
-      "global_id": "victim_2",
-      "author_id": "victim",
-      "title": "求助贴",
-      "content": "如果不删帖，请帮帮我。",
-      "idex": 2,
       "floor": 1,
       "likers": []
     }
   ],
   "comments": [
-    {
-      "post_global_id": "ghost_1",
-      "author_id": "admin",
-      "content": "我利用系统漏洞看到了这条被删的帖子！",
-      "floor": 2,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "diver",
-      "content": "潜入第 1 层",
-      "floor": 2,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "admin",
-      "content": "潜入第 2 层 (回复第 2 楼)",
-      "floor": 3,
-      "reply_floor": 2
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "diver",
-      "content": "潜入第 3 层 (回复第 3 楼)",
-      "floor": 4,
-      "reply_floor": 3
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "admin",
-      "content": "潜入第 4 层 (回复第 4 楼)",
-      "floor": 5,
-      "reply_floor": 4
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "diver",
-      "content": "潜入第 5 层 (回复第 5 楼)",
-      "floor": 6,
-      "reply_floor": 5
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "admin",
-      "content": "潜入第 6 层 (回复第 6 楼)",
-      "floor": 7,
-      "reply_floor": 6
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "diver",
-      "content": "潜入第 7 层 (回复第 7 楼)",
-      "floor": 8,
-      "reply_floor": 7
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "admin",
-      "content": "潜入第 8 层 (回复第 8 楼)",
-      "floor": 9,
-      "reply_floor": 8
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "diver",
-      "content": "潜入第 9 层 (回复第 9 楼)",
-      "floor": 10,
-      "reply_floor": 9
-    },
-    {
-      "post_global_id": "diver_1",
-      "author_id": "admin",
-      "content": "潜入第 10 层 (回复第 10 楼)",
-      "floor": 11,
-      "reply_floor": 10
-    },
-    {
-      "post_global_id": "diver_2",
-      "author_id": "admin",
-      "content": "1952年，大卫·哈夫曼在麻省理工学院攻读博士学位期间发明了该算法。",
-      "floor": 2,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "diver_2",
-      "author_id": "spammer",
-      "content": "该方法完全依据字符出现概率来构造异字头的平均长度最短的码字。",
-      "floor": 3,
-      "reply_floor": -1
-    },
-    {
-      "post_global_id": "diver_2",
-      "author_id": "ghost",
-      "content": "Huffman coding is efficient for compressing text data.",
-      "floor": 4,
-      "reply_floor": -1
-    }
+
   ]
 }

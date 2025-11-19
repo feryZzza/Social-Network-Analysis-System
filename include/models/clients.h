@@ -52,7 +52,12 @@ public:
 
     // 重载
     friend std::ostream& operator<< (std::ostream& os, Client& c);
-    bool operator==(const Client& other) const { return this->id == other.id; } // 建议改用 ID 比较
+    // 重载比较运算符，基于 name 字段，在搜索树中使用
+    bool operator==(const Client& other) const { return this->name == other.name; }
+    bool operator<(const Client& other) const { return this->name < other.name; }
+    bool operator>(const Client& other) const { return this->name > other.name; }
+    bool operator<=(const Client& other) const { return this->name <= other.name; }
+    bool operator>=(const Client& other) const { return this->name >= other.name; }
 
 private:
     int post_time = 0;

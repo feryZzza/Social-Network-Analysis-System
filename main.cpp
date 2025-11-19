@@ -1,177 +1,139 @@
 #include <iostream>
 #include "manager/core.h"
 #include <string>
+#include <vector> // 仅用于测试脚本管理测试数据，Core 内部不依赖 STL
 
 using namespace std;
 
+void printSeparator(const string& title) {
+    cout << "\n=============================================" << endl;
+    cout << "   " << title << endl;
+    cout << "=============================================" << endl;
+}
+
 int main() {
-    cout << "=== 社交网络管理系统 (Core版 - 终极压力测试) ===" << endl;
+    printSeparator("社交网络管理系统 (AVL Tree Index Test)");
 
     Core& core = Core::instance();
 
-    // 1. 尝试加载数据
+    // 1. 加载数据 (模拟系统启动)
     if (core.loadData()) {
         cout << "[系统] 成功加载历史数据。" << endl;
     } else {
-        cout << "[系统] 无历史数据，系统初始化..." << endl;
+        cout << "[系统] 无历史数据，初始化全新环境..." << endl;
     }
 
-    // 2. 如果数据为空，生成复杂的挑战性测试数据
+    // 如果是空环境，初始化测试数据
     if (core.getAllClients().empty()) {
-        cout << "\n>>> ⚠️ 开始执行终极压力测试场景 ⚠️ <<<" << endl;
-        
-        // --- 阶段 A: 批量注册用户 ---
-        cout << "\n[Init] 正在注册测试用户群..." << endl;
-        core.registerClient("Admin(管理员)", "admin", "root");
-        core.registerClient("Spammer(刷屏狂)", "spammer", "123456");
-        core.registerClient("Ghost(幽灵)", "ghost", "boo");
-        core.registerClient("DeepDiver(潜水员)", "diver", "deep");
-        core.registerClient("Victim(受害者)", "victim", "help");
-
-        Client* admin = core.getClientById("admin");
-        Client* spammer = core.getClientById("spammer");
-        Client* ghost = core.getClientById("ghost");
-        Client* diver = core.getClientById("diver");
-        Client* victim = core.getClientById("victim");
-
-        // --- 场景一：操作栈溢出测试 (The Stack Overflow) ---
-        // 测试目的：Fake_Stack 默认大小为 10，连续操作超过 10 次，最早的操作应被丢弃且不泄露内存。
-        cout << "\n[场景一] 操作栈溢出测试 (The Stack Overflow)..." << endl;
-        core.userAddPost(victim, "测试点赞贴", "请大家疯狂点赞！");
-        Post* p_overflow = &victim->posts[0];
-
-        cout << "   -> Spammer 开始疯狂点赞/取消赞 (执行 15 次)..." << endl;
-        for(int i=0; i<15; ++i) {
-            // 奇数次是点赞，偶数次是取消赞
-            core.userLikePost(spammer, p_overflow); 
-        }
-        cout << "   -> Spammer 当前操作栈大小: " << spammer->action_num() << " (预期: 10)" << endl;
-        
-        cout << "   -> Spammer 尝试全部撤销..." << endl;
-        int undo_count = 0;
-        while(core.userUndo(spammer) == SUCCESS) {
-            undo_count++;
-        }
-        cout << "   -> 成功撤销次数: " << undo_count << " (预期: 10, 前5次操作已丢失)" << endl;
-
-
-        // --- 场景二：“幽灵”互动测试 (The Ghost Interaction) ---
-        // 测试目的：删帖后，Post对象从链表移除但未销毁。测试此时对该Post的操作处理，以及恢复后的状态。
-        cout << "\n[场景二] “幽灵”互动测试 (Delete & Interact & Restore)..." << endl;
-        core.userAddPost(ghost, "我即将消失", "你看得见我吗？");
-        Post* p_ghost = &ghost->posts[0]; // 获取指针
-
-        // 1. Ghost 删除帖子
-        core.userDeletePost(ghost, p_ghost);
-        cout << "   -> Ghost 删除了帖子。" << endl;
-
-        // 2. Admin 试图评论一个已经被删的帖子 (模拟持有旧指针的情况)
-        // 注意：在逻辑上这应该被允许（对象还在Action里活着），或者被禁止。
-        // 现在的Core实现允许对 valid 指针操作。
-        core.userAddComment(admin, p_ghost, "我利用系统漏洞看到了这条被删的帖子！");
-        cout << "   -> Admin 对“被删”帖子进行了评论 (存储在悬空对象中)。" << endl;
-
-        // 3. Ghost 撤销删除 (复活帖子)
-        core.userUndo(ghost);
-        cout << "   -> [撤销] Ghost 恢复了帖子。" << endl;
-        
-        // 4. 验证 Admin 的评论是否随帖子一起归来
-        cout << "   -> 检查恢复后的帖子内容..." << endl;
-        // 重新获取指针（虽然 auto_insert 应该保持原指针有效，但从列表读最稳妥）
-        if(ghost->posts.size() > 0) {
-            cout << ghost->posts[0]; 
-        }
-
-
-        // --- 场景三：深度楼中楼递归 (Nested Replies) ---
-        // 测试目的：测试极深的回复链，以及 JSON 序列化/反序列化是否能处理这种依赖。
-        cout << "\n[场景三] 深度楼中楼递归 (Nested Replies)..." << endl;
-        core.userAddPost(diver, "深海挑战", "我们将潜入第 10 层梦境。");
-        Post* p_deep = &diver->posts[0];
-        
-        // 创建 10 层回复
-        // Floor 2-11
-        int current_target_floor = -1; // 先回复帖子
-        for(int i=1; i<=10; ++i) {
-            string content = "潜入第 " + to_string(i) + " 层";
-            if(i > 1) content += " (回复第 " + to_string(current_target_floor) + " 楼)";
-            
-            // 每个人都回复上一楼
-            Client* current_user = (i % 2 == 0) ? admin : diver;
-            core.userAddComment(current_user, p_deep, content, current_target_floor);
-            
-            // 获取刚刚发的楼层号 (它是最新的楼层)
-            current_target_floor = p_deep->get_floor(); 
-        }
-        cout << "   -> 已创建 10 层嵌套回复。" << endl;
-
-
-        // --- 场景四：毁灭性冲突测试 (Destructive Conflict) ---
-        // 测试目的：用户 A 删帖，导致用户 B 针对该贴的操作失效（Invalidated）。
-        cout << "\n[场景四] 毁灭性冲突测试 (Invalidation Chain)..." << endl;
-        core.userAddPost(victim, "求助贴", "如果不删帖，请帮帮我。");
-        Post* p_conflict = &victim->posts[0];
-
-        // 1. Admin 评论
-        core.userAddComment(admin, p_conflict, "已收到反馈。");
-        cout << "   -> Admin 评论了帖子。" << endl;
-
-        // 2. Admin 删除自己的评论
-        core.userDeleteComment(admin, p_conflict, 2); // 删除2楼
-        cout << "   -> Admin 删除了自己的评论 (Action 入栈)。" << endl;
-
-        // 3. Victim 突然删除整个帖子！
-        core.userDeletePost(victim, p_conflict);
-        cout << "   -> Victim 删除了整个帖子！" << endl;
-        cout << "   -> (系统应通知 UndoManager 销毁所有相关引用...)" << endl;
-
-        // 4. Admin 试图撤销“删除评论”
-        // 预期：失败，因为帖子都没了，评论无法恢复挂载。
-        cout << "   -> Admin 试图撤销“删除评论”操作..." << endl;
-        CoreStatus status = core.userUndo(admin);
-        if (status == ERR_ACTION_INVALID || status == SUCCESS) { // SUCCESS 是指Undo调用成功，但内部可能print失败
-             // 我们看控制台输出
-        }
-
-        // 5. Victim 撤销“删帖”
-        core.userUndo(victim);
-        cout << "   -> [撤销] Victim 恢复了帖子。" << endl;
-
-        // 6. Admin 再次试图撤销“删除评论”
-        // 预期：仍然失败。因为在第3步删帖时，Admin 栈里的 Action 已经被 invalidate 了。
-        // 即使帖子回来了，之前的引用关系已经被切断（为了安全）。
-        cout << "   -> Admin 再次试图撤销..." << endl;
-        core.userUndo(admin);
-
-
-        // --- 场景五：哈夫曼内容分析测试 (Huffman Analysis) ---
-        // 测试目的：验证哈夫曼树能否正确统计帖子及评论的词频，生成编码并完成压缩/解压闭环。
-        cout << "\n[场景五] 哈夫曼内容分析测试 (Huffman Analysis)..." << endl;
-        core.userAddPost(diver, "算法导论", "哈夫曼编码（Huffman Coding）是一种用于无损数据压缩的熵编码（权编码）算法。");
-        Post* p_algo = &diver->posts[diver->posts.size()-1]; // 获取最新发的帖子
-
-        // 增加一些评论以丰富文本量
-        core.userAddComment(admin, p_algo, "1952年，大卫·哈夫曼在麻省理工学院攻读博士学位期间发明了该算法。");
-        core.userAddComment(spammer, p_algo, "该方法完全依据字符出现概率来构造异字头的平均长度最短的码字。");
-        core.userAddComment(ghost, p_algo, "Huffman coding is efficient for compressing text data.");
-
-        // 执行分析
-        core.analyzePostContent(p_algo);
+        cout << "\n[Init] 正在注册基础用户群..." << endl;
+        // 注意：Register参数是 (Name, ID, Password)
+        // 现在我们的系统主键逻辑已经迁移到 Name 上
+        core.registerClient("Alice", "id_001", "pass1");
+        core.registerClient("Bob", "id_002", "pass2");
+        core.registerClient("Charlie", "id_003", "pass3");
+        core.registerClient("Dave", "id_004", "pass4");
+        core.registerClient("Eve", "id_005", "pass5");
     }
 
-    // 3. 最终状态展示
-    cout << "\n=============================" << endl;
-    cout << "=== 最终系统全景视图 ===" << endl;
-    cout << "=============================" << endl;
-    SeqList<Client>& clients = core.getAllClients();
-    for(int i=0; i<clients.size(); ++i) {
-        cout << clients[i] << endl;
+    // --- 场景一：基于名字的快速查找测试 ---
+    printSeparator("场景一：AVL树 查找功能测试");
+
+    vector<string> names_to_find = {"Alice", "Eve", "Charlie", "NonExistentUser"};
+
+    for (const string& name : names_to_find) {
+        cout << "正在查找用户 [" << name << "] ... ";
+        Client* user = core.getClientByName(name);
+        
+        if (user) {
+            cout << "✅ 找到! (ID: " << user->ID() << ", 内存地址: " << user << ")" << endl;
+        } else {
+            cout << "❌ 未找到 (符合预期)" << endl;
+        }
     }
 
-    // 4. 持久化测试
-    cout << "\n>>> 正在保存数据到 JSON... <<<" << endl;
+    // --- 场景二：注册查重测试 ---
+    printSeparator("场景二：注册查重测试");
+    
+    cout << "尝试注册已存在的用户名 [Alice]..." << endl;
+    CoreStatus status = core.registerClient("Alice", "id_new_alice", "123");
+    if (status == ERR_CLIENT_EXISTS) {
+        cout << "✅ 注册失败：用户已存在 (查重逻辑生效)" << endl;
+    } else {
+        cout << "❌ 错误：系统允许了重名注册！" << endl;
+    }
+
+    cout << "尝试注册新用户 [Frank]..." << endl;
+    status = core.registerClient("Frank", "id_006", "pass6");
+    if (status == SUCCESS) {
+        cout << "✅ 注册成功。" << endl;
+        // 立即验证是否能查到
+        if (core.getClientByName("Frank")) {
+            cout << "✅ 索引同步成功：可以立即查找到 Frank。" << endl;
+        } else {
+            cout << "❌ 索引同步失败：无法查找到刚注册的用户。" << endl;
+        }
+    } else {
+        cout << "❌ 注册失败 (Status: " << status << ")" << endl;
+    }
+
+
+    // --- 场景三：业务操作一致性测试 ---
+    printSeparator("场景三：业务操作测试 (使用查找结果)");
+
+    Client* alice = core.getClientByName("Alice");
+    Client* bob = core.getClientByName("Bob");
+
+    if (alice && bob) {
+        // 1. Alice 发帖
+        cout << "-> Alice 发布一条动态..." << endl;
+        core.userAddPost(alice, "AVL树真好用", "查找速度飞快，再也不用遍历链表了！");
+        Post* p_alice = &alice->posts.tail_ptr()->data; // 获取最新帖子
+        
+        cout << "   [验证] Alice 当前发帖数: " << alice->posts.size() << endl;
+
+        // 2. Bob 查找并点赞
+        cout << "-> Bob 搜索 Alice 并点赞..." << endl;
+        // 模拟 Bob 通过名字找到 Alice (已经在上面做了)
+        core.userLikePost(bob, p_alice);
+        cout << "   [验证] 帖子点赞数: " << p_alice->likes_num() << endl;
+
+        // 3. Bob 评论
+        cout << "-> Bob 评论帖子..." << endl;
+        core.userAddComment(bob, p_alice, "确实，O(logN) 比 O(N) 强多了。");
+        
+        // 4. 撤销测试
+        cout << "-> Bob 撤销评论..." << endl;
+        core.userUndo(bob);
+        cout << "   [验证] 撤销后评论数: " << p_alice->comment_list.size() << " (预期减少1)" << endl;
+    } else {
+        cout << "❌ 严重错误：无法获取测试用户，跳过业务测试。" << endl;
+    }
+
+
+    // --- 场景四：哈夫曼分析回归测试 ---
+    printSeparator("场景四：哈夫曼分析回归测试");
+    
+    Client* frank = core.getClientByName("Frank");
+    if (frank) {
+        core.userAddPost(frank, "测试文本", "This is a test string for Huffman coding. We expect it to be compressed.");
+        Post* p_frank = &frank->posts.tail_ptr()->data;
+        core.analyzePostContent(p_frank);
+    }
+
+
+    // --- 最终状态展示 ---
+    printSeparator("最终系统状态");
+    SeqList<Client>& all = core.getAllClients();
+    cout << "当前系统用户总数: " << all.size() << endl;
+    cout << "用户列表:" << endl;
+    for(int i=0; i<all.size(); ++i) {
+        cout << " - " << all[i].Name() << " (ID: " << all[i].ID() << ")" << endl;
+    }
+
+    // 保存数据
+    cout << "\n>>> 正在保存数据... <<<" << endl;
     if (core.saveData()) {
-        cout << "[系统] 数据保存成功！请检查 clients.json 文件。" << endl;
+        cout << "[系统] 数据保存成功。" << endl;
     } else {
         cout << "[错误] 保存失败。" << endl;
     }

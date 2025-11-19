@@ -1,5 +1,5 @@
 #include "manager/core.h"
-#include "data_structure/huffman.h" // 引入哈夫曼模块
+#include "models/clients.h"
 #include <iostream>
 #include <iomanip> // 用于格式化输出
 
@@ -13,18 +13,34 @@ bool Core::saveData() {//调用文件管理器保存数据
     return FileManager::instance().save(all_clients);
 }
 
-Client* Core::getClientById(const std::string& id) {//通过ID查找用户，后续把这个改成哈希表和查找树，接上培宁的代码
-    for (int i = 0; i < all_clients.size(); ++i) {
-        if (all_clients[i].ID() == id) {
-            return &all_clients[i];
-        }
+void Core::rebuildIndex() {
+    // 遍历 all_clients 插入索引
+    for(int i = 0; i < all_clients.size(); ++i) {
+        // 取出线性表中对象的地址
+        Client* ptr = &all_clients[i];
+        // 使用指针构造，会自动提取 Name
+        client_index.insert(AVL_node(ptr));
     }
+}
+
+Client* Core::getClientByName(const std::string& name) {
+    // 构造一个临时的 AVL_node 用于查找
+    AVL_node target(name, nullptr);
+    
+    // 使用 AVL 树进行查找
+    TreeNode<AVL_node>* node = client_index.find(target);
+    
+    if (node) {
+        // 找到后返回存储的真实指针
+        return node->data.client;
+    }
+    // 没找到
     return nullptr;
 }
 
 CoreStatus Core::registerClient(const std::string& name, const std::string& id, const std::string& password) {
     //添加新用户
-    if (getClientById(id)) {
+    if (getClientByName(name)) {
         return ERR_CLIENT_EXISTS;
     }
     if (all_clients.full()) {
@@ -32,6 +48,11 @@ CoreStatus Core::registerClient(const std::string& name, const std::string& id, 
     }
     Client newClient(name, id, password);
     all_clients.add(newClient);
+
+    // 插入索引,更新平衡树
+    Client* ptr = &all_clients[all_clients.size() - 1];
+    client_index.insert(AVL_node(ptr));
+
     return SUCCESS;
 }
 
