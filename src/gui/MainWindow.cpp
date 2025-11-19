@@ -29,6 +29,7 @@ QString statusToText(CoreStatus status) {
     case ERR_ALREADY_FRIENDS: return QObject::tr("已经是好友了");
     case ERR_NOT_FRIENDS: return QObject::tr("尚未建立好友关系");
     case ERR_SELF_RELATION: return QObject::tr("不能与自己建立关系");
+    case ERR_SELF_FRIEND: return QObject::tr("不能添加自己为好友");
     default: return QObject::tr("未知错误");
     }
 }
@@ -226,9 +227,9 @@ void MainWindow::buildUi() {
 }
 
 void MainWindow::refreshClients() {
-    QString activeId;
+    QString activeName; // [修改] 保存当前选中的 Name
     if (currentClient) {
-        activeId = QString::fromStdString(currentClient->ID());
+        activeName = QString::fromStdString(currentClient->Name());
     }
 
     clientList->clear();
@@ -239,9 +240,10 @@ void MainWindow::refreshClients() {
         Client& client = clients[i];
         QString display = QString::fromStdString(client.Name() + " (" + client.ID() + ")");
         QListWidgetItem* item = new QListWidgetItem(display, clientList);
-        QString id = QString::fromStdString(client.ID());
-        item->setData(Qt::UserRole, id);
-        if (!activeId.isEmpty() && id == activeId) {
+        QString name = QString::fromStdString(client.Name());
+        // [修改] 存储 Name 而不是 ID
+        item->setData(Qt::UserRole, name);
+        if (!activeName.isEmpty() && name == activeName) {
             clientList->setCurrentItem(item);
             currentClient = &clients[i];
         }
@@ -299,17 +301,22 @@ void MainWindow::refreshFriends() {
         return;
     }
 
-    LinkList<Client*>& friends = currentClient->getFriends();
-    for (int i = 0; i < friends.size(); ++i) {
-        Client* f = friends[i];
-        if (!f) continue;
-        QString display =
-            QString::fromStdString(f->Name() + " (" + f->ID() + ")");
-        QListWidgetItem* item = new QListWidgetItem(display, friendList);
-        item->setData(Qt::UserRole, QString::fromStdString(f->ID()));
+    SeqList<Client>& allClients = core.getAllClients();
+    for (int i = 0; i < allClients.size(); ++i) {
+        Client* other = &allClients[i];
+        if (other == currentClient) continue;
+
+        if (core.getRelationDistance(currentClient, other) == 1) {
+            QString display =
+                QString::fromStdString(other->Name() + " (" + other->ID() + ")");
+            QListWidgetItem* item = new QListWidgetItem(display, friendList);
+            // [修改] 存储 Name
+            item->setData(Qt::UserRole, QString::fromStdString(other->Name()));
+        }
     }
     updateActionButtons();
 }
+
 void MainWindow::updateCurrentClientLabel() {
     if (!currentUserLabel) return;
     if (currentClient) {
@@ -324,16 +331,17 @@ void MainWindow::updateCurrentClientLabel() {
 
 QString MainWindow::makePostKey(Client* owner, const Post& post) const {
     if (!owner) return {};
-    return QString::fromStdString(owner->ID()) + ":" + QString::number(post.get_idex());
+    // [修改] 使用 Name 作为 Key 的一部分
+    return QString::fromStdString(owner->Name()) + ":" + QString::number(post.get_idex());
 }
 
-bool MainWindow::decodePostKey(const QString& key, QString& ownerId, int& idex) const {
+bool MainWindow::decodePostKey(const QString& key, QString& ownerName, int& idex) const {
     const QStringList parts = key.split(':');
     if (parts.size() != 2) return false;
     bool ok = false;
     int parsed = parts[1].toInt(&ok);
     if (!ok) return false;
-    ownerId = parts[0];
+    ownerName = parts[0]; // [修改] 解析出的是 Name
     idex = parsed;
     return true;
 }
@@ -341,14 +349,15 @@ bool MainWindow::decodePostKey(const QString& key, QString& ownerId, int& idex) 
 Post* MainWindow::resolvePostFromItem(QListWidgetItem* item) const {
     if (!item) return nullptr;
     QString key = item->data(Qt::UserRole).toString();
-    QString ownerId;
+    QString ownerName;
     int idex = 0;
-    if (!decodePostKey(key, ownerId, idex)) return nullptr;
-    return findPost(ownerId, idex);
+    if (!decodePostKey(key, ownerName, idex)) return nullptr;
+    return findPost(ownerName, idex);
 }
 
-Post* MainWindow::findPost(const QString& ownerId, int idex) const {
-    Client* client = core.getClientById(ownerId.toStdString());
+Post* MainWindow::findPost(const QString& ownerName, int idex) const {
+    // [修改] 使用 core.getClientByName
+    Client* client = core.getClientByName(ownerName.toStdString());
     if (!client) return nullptr;
     for (int i = 0; i < client->posts.size(); ++i) {
         Post& post = client->posts[i];
@@ -459,8 +468,9 @@ void MainWindow::onClientSelectionChanged() {
         refreshFriends();
         return;
     }
-    QString id = items.first()->data(Qt::UserRole).toString();
-    currentClient = core.getClientById(id.toStdString());
+    QString name = items.first()->data(Qt::UserRole).toString();
+    // [修改] 使用 core.getClientByName
+    currentClient = core.getClientByName(name.toStdString());
     updateCurrentClientLabel();
     refreshFriends();
 }
@@ -620,15 +630,17 @@ void MainWindow::handleAddFriend() {
     if (requireActiveClient() != SUCCESS) return;
     SeqList<Client>& clients = core.getAllClients();
     QStringList options;
-    QVector<QString> optionIds;
+    QVector<QString> optionNames; // [修改] 存储 Name
     for (int i = 0; i < clients.size(); ++i) {
         Client& candidate = clients[i];
         if (&candidate == currentClient) continue;
-        if (currentClient->hasFriend(&candidate)) continue;
+
+        if (core.getRelationDistance(currentClient, &candidate) == 1) continue;
+        
         QString label =
             QString::fromStdString(candidate.Name() + " (" + candidate.ID() + ")");
         options << label;
-        optionIds << QString::fromStdString(candidate.ID());
+        optionNames << QString::fromStdString(candidate.Name()); // [修改] 存储 Name
     }
     if (options.isEmpty()) {
         showStatusMessage(tr("没有可添加的用户。"), true);
@@ -639,10 +651,13 @@ void MainWindow::handleAddFriend() {
                                            false, &ok);
     if (!ok || chosen.isEmpty()) return;
     int index = options.indexOf(chosen);
-    if (index < 0 || index >= optionIds.size()) return;
-    QString id = optionIds[index];
-    Client* other = core.getClientById(id.toStdString());
-    CoreStatus status = core.addFriendship(currentClient, other);
+    if (index < 0 || index >= optionNames.size()) return;
+    QString name = optionNames[index]; // [修改] 使用 Name
+    
+    // [修改] 使用 core.getClientByName
+    Client* other = core.getClientByName(name.toStdString());
+    
+    CoreStatus status = core.makeFriend(currentClient, other);
     if (status == SUCCESS) {
         refreshFriends();
     }
@@ -655,9 +670,11 @@ void MainWindow::handleRemoveFriend() {
         showStatusMessage(tr("请选择要移除的好友。"), true);
         return;
     }
-    QString id = friendList->currentItem()->data(Qt::UserRole).toString();
-    Client* other = core.getClientById(id.toStdString());
-    CoreStatus status = core.removeFriendship(currentClient, other);
+    QString name = friendList->currentItem()->data(Qt::UserRole).toString();
+    // [修改] 使用 core.getClientByName
+    Client* other = core.getClientByName(name.toStdString());
+    
+    CoreStatus status = core.deleteFriend(currentClient, other);
     if (status == SUCCESS) {
         refreshFriends();
     }

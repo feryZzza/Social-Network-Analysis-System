@@ -39,10 +39,14 @@ private:
     void refreshPosts();
     void refreshFriends();
     void updateCurrentClientLabel();
+    
+    // 这里的 key 生成逻辑将改为使用 Name
     QString makePostKey(Client* owner, const Post& post) const;
-    bool decodePostKey(const QString& key, QString& ownerId, int& idex) const;
+    bool decodePostKey(const QString& key, QString& ownerName, int& idex) const;
+    
     Post* resolvePostFromItem(QListWidgetItem* item) const;
-    Post* findPost(const QString& ownerId, int idex) const;
+    Post* findPost(const QString& ownerName, int idex) const;
+    
     void showPostDetails(Post* post);
     void refreshComments(Post* post);
     void showStatusMessage(const QString& message, bool isError = false);
