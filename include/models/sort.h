@@ -2,43 +2,51 @@
 #define SORT_H
 #include <iostream>
 #include "data_structure/lin_list.h"
-#include "data_structure/stack.h"
-#include "data_structure/queue.h"
-#include <string>
 #include "models/clients.h"
 #include "models/Post.h"
-#include "models/comment.h"
 
-//自定义函数说明
-template <typename T>
-void mySwap(T& a, T& b);
-int myMin(int a, int b);
+// --- Sorter 类 ---
+// 职责：管理索引顺序表，提供排行榜生成功能
+// "haoyoushu" (好友数排行) 和 "dianzanshu" (点赞数排行) 为对外接口
+class Sorter {
+public:
+    Sorter();
+    ~Sorter();
 
-// 比较函数前置声明
-bool compareHaoyou(const Client& a, const Client& b);
-bool comparePost(const Post& a, const Post& b);
+    // 禁用拷贝
+    Sorter(const Sorter&) = delete;
+    Sorter& operator=(const Sorter&) = delete;
 
-// 排序算法前置声明
-template <typename T>
-void insertionSort(SeqList<T>& arr, bool (*count)(const T& a, const T& b));
+    // --- 公开接口 (业务功能) ---
+    
+    // 生成用户影响力排行榜 (基于好友数)
+    // 参数类型明确为 SeqList<Client>
+    void haoyoushu(SeqList<Client>& clients);
 
-template <typename T>
-int partition(SeqList<T>& arr, int left, int right, bool (*count)(const T& a, const T& b));
+    // 生成全局热门帖子排行榜 (基于点赞数)
+    // 参数类型明确为 SeqList<Client> (因为遍历的是用户列表)
+    void dianzanshu(SeqList<Client>& users);
 
-template <typename T>
-void quickSort(SeqList<T>& arr, int left, int right, bool (*count)(const T& a, const T& b));
+private:
+    // --- 私有成员 (数据) ---
+    SeqList<Client*>* clientIndex = nullptr;
+    SeqList<Post*>* postIndex = nullptr;
 
-template <typename T>
-void heapify(SeqList<T>& arr, int n, int i, bool (*count)(const T& a, const T& b));
+    // --- 私有实现 (核心逻辑拆分：Init 与 Sort 分离) ---
+    
+    // 1. 初始化索引表
+    // 明确针对 SeqList<Client>
+    void initClientIndices(SeqList<Client>& source);
+    
+    // 明确针对 LinkList<Post> (单个用户的帖子列表)
+    void initPostIndices(LinkList<Post>& source);
+    
+    // 明确针对 SeqList<Client> (收集所有用户的帖子)
+    void initGlobalPostIndices(SeqList<Client>& users);
 
-template <typename T>
-void heapSort(SeqList<T>& arr, bool (*count)(const T& a, const T& b));
-
-template <typename T>
-void ShiyingSort(SeqList<T>& arr, bool (*count)(const T& a, const T& b));
-
-// 排行榜核心函数前置声明
-void haoyoushu(SeqList<Client>& clients);
-void dianzanshu(SeqList<Client>& users);
+    // 排序，使用函数指针作为比较依据
+    void sortClientIndices(bool (*compare)(const Client&, const Client&));
+    void sortPostIndices(bool (*compare)(const Post&, const Post&));
+};
 
 #endif
