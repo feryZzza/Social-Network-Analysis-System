@@ -1,124 +1,133 @@
-# **社交网络管理系统 (Social Network Analysis System)**
+# 社交网络管理系统 (Social Network Analysis System)
 
-这是一个基于 C++ 实现的社交网络后端核心系统。
+基于 C++ 的社交网络核心后端，所有基础数据结构、JSON 读写与业务调度均为手写实现，面向教学和系统设计练习。
 
-**项目特色**：
+## 亮点
+- 手写容器与内存管理：SeqList/LinkList/Stack/Queue/AVL/Heap/Huffman/Graph 全部自制，不依赖 std 容器或智能指针。
+- Core-Model 分层：Core 作为唯一入口，模型保持轻量，UndoManager 保证生命周期安全，FileManager 负责多遍加载的 JSON 持久化。
+- 完整撤销链路：发帖、删帖、评论、删评、点赞均可撤销，fake_remove + invalidate 机制规避悬空指针。
+- 社交图谱：用自研无向图存储好友关系，支持 BFS/DFS、最短路径、度数统计与遍历导出。
+- 内容分析：内置哈夫曼树对帖子内容做压缩/解压与 WPL 计算，提供分析结果字符串给 GUI。
+- 排行榜：Sorter 生成用户影响力榜（好友数）与全站热帖榜（点赞数），并支持个人热帖 Top-N。
 
-1. **纯手写底层架构**：不依赖 C++ 标准库容器（如 std::vector, std::map）和智能指针，所有数据结构（链表、顺序表、栈、队列）均为从零实现。  
-2. **核心与模型分离**：采用 Core-Model 架构，将复杂的业务逻辑集中在管理层，模型层保持轻量。  
-3. **强大的撤销 (Undo) 机制**：支持对发帖、删帖、评论、删评、点赞等操作的撤销，并解决了对象生命周期管理中的“悬空指针”问题。  
-4. **自定义 JSON 持久化**：实现了手写的 JSON 解析器和生成器，支持复杂对象关系（如指针引用、多层楼中楼）的保存与重建。
+## 功能清单
+- 用户：注册、按 Name 查找、好友互加/解除、关系距离查询与最短路径。
+- 内容：发帖、删帖、帖内评论（含楼中楼）、点赞，消息通知队列。
+- 撤销：对发帖/删帖/评论/删评/点赞的单步撤销，Fake_Stack 限制深度，节点 fake_remove 避免悬空。
+- 持久化：clients/posts/comments/friend_edges 扁平 JSON，多遍加载重建指针，支持特殊字符转义。
+- 排行/分析：好友数影响力榜、全站热帖榜、个人热帖榜；哈夫曼编码/压缩/解压与 WPL 输出。
+- 图算法：BFS/DFS 遍历，最短路径，度数统计，孤岛检测。
 
-## **📁 项目结构**
+## 系统特色
+1) 纯手写底层：不引入 std 容器或智能指针，所有链式/顺序结构、自定义堆和搜索树都从 0 实现，方便学习指针与内存管理。  
+2) Core-Model 解耦：业务逻辑集中在 Core/Manager 层，模型类保持数据载体角色，方便后期扩展 GUI 或其他入口。  
+3) 撤销安全：UndoManager 维护 Action 注册表；LinkList 的 fake_remove 让节点地址稳定，真正析构时统一 invalidate，避免悬空指针。  
+4) 手写 JSON 持久化：自研转义/解析器，扁平化存储对象关系，支持指针重建、点赞列表、好友关系还原。  
+5) 多模块融合：哈夫曼分析、社交图谱、AVL 索引和排序器共同工作，提供分析、查询、排行等综合能力。
 
-.  
-├── CMakeLists.txt          \# CMake 构建配置  
-├── main.cpp                \# 程序入口与压力测试脚本  
-├── data/                   \# 数据存储目录  
-│   └── clients.json        \# JSON 持久化文件  
-├── include/                \# 头文件  
-│   ├── data\_structure/     \# 自定义数据结构 (List, Stack, Queue, Huffman)  
-│   ├── manager/            \# 管理层 (Core, FileManager, UndoManager)  
-│   └── models/             \# 数据模型 (Client, Post, Comment, Action, Message)  
-└── src/                    \# 源代码实现  
-    ├── data\_structure/  
-    ├── manager/  
-    └── models/
+## 项目结构
+```
+.
+├── CMakeLists.txt
+├── main.cpp                # 场景化集成测试入口
+├── data/clients.json       # 持久化文件
+├── include/
+│   ├── data_structure/     # SeqList, LinkList, Stack, Queue, Huffman, AVL, Heap...
+│   ├── manager/            # Core, FileManager, UndoManager
+│   └── models/             # Client/Post/Comment/Action/Message/SocialGraph/Sorter
+└── src/                    # 以上头文件的实现
+```
 
-## **🏗️ 架构设计**
+## 核心设计
+- **Core (单例)**：处理所有业务请求、撤销入栈、消息分发、AVLT 索引重建、社交图同步。
+- **UndoManager (单例)**：记录 Action 对象，监听被 fake_remove 的节点，在真实析构时批量 invalidate。
+- **FileManager (单例)**：自写 JSON 解析/转义，扁平化存储 clients/posts/comments 与好友关系；多遍加载解决指针重建。
+- **SocialGraph**：邻接表存好友，提供最短路径、深度/广度遍历，支持关系可视化与距离查询。
+- **Sorter**：维护 SeqList 指针索引，基于自定义比较函数排序，输出排行榜数据给 CLI/GUI。
 
-系统采用了分层架构，确保逻辑清晰、职责单一。
+## 关键流程
+- 加载：按“用户 → 帖子 → 评论 → 点赞者 → 好友边”顺序重建，保证指针稳定。
+- 互动：Core 入口完成发帖/评论/点赞并推送消息，UndoManager 记录 Action，Sorter/Graph 同步更新。
+- 撤销：Fake_Stack 弹出 Action 执行逆操作；已析构节点由 UndoManager invalidate 后不会被访问。
+- 哈夫曼：countFrequency → HuffmanTree 构建 → generateCodes → compress/decompress → WPL 统计，可直接打印分析结果。
+- 图谱：SocialGraph 维护邻接表； shortestPath 用 BFS，depthFirstPath 用 DFS，遍历接口便于 GUI 可视化。
+- 排行：Sorter 初始化 SeqList 指针索引并排序，提供全局热帖、用户影响力、个人热帖 Top-N。
 
-### **1\. 核心管理层 (Manager)**
+## 持久化策略
+- 扁平格式：clients/posts/comments + friend_edges 分开保存（global_id 形如 `clientName_postIndex`），避免循环引用。
+- 多遍加载：先加载用户固定内存地址，再加载帖子并链接作者，随后加载评论链接帖子/作者，最后补齐点赞者与好友边。
+- 转义与容错：自写 escape/unescape，处理换行与特殊字符，尽量减少对第三方依赖。
 
-* **Core (单例)**:  
-  * **系统的“大脑”**。它是外部调用（如 main.cpp 或 GUI）与内部模型交互的唯一入口。  
-  * 负责处理发帖、评论、点赞等业务逻辑，管理用户撤销栈，分发消息通知。  
-  * **设计意图**：将业务逻辑从数据模型中剥离，避免模型类过度膨胀。  
-* **UndoManager (单例)**:  
-  * **生命周期卫士**。它维护了一个注册表，记录了所有 Post 对象与引用该帖子的 Action 对象之间的关系。  
-  * **防止野指针**：当一个帖子被彻底销毁时，UndoManager 会通知所有相关的 Action 将内部指针置空 (invalidate)，从而防止撤销操作访问非法内存。  
-* **FileManager (单例)**:  
-  * **数据持久化**。负责将内存中的对象图序列化为 JSON 字符串，并解析 JSON 还原对象。  
-  * **多遍加载 (Multi-pass Loading)**：采用“先加载对象，后链接关系”的策略，解决了指针重建时的依赖问题（例如：在所有用户加载完成前，无法确立点赞关系）。
-
-### **2\. 数据模型层 (Models)**
-
-* **Client**: 用户实体。存储个人信息、帖子列表 (LinkList\<Post\>)、操作撤销栈 (Fake\_Stack) 和消息队列。  
-* **Post**: 帖子实体。存储内容、作者指针、评论列表 (LinkList\<Comment\>) 和点赞者列表。  
-* **Comment**: 评论实体。支持楼中楼逻辑（记录 reply\_floor）。  
-* **Action (继承体系)**: 命令模式的实现。包括 PostAction, CommentAction, LikeAction，封装了具体的撤销逻辑。
-
-### **3\. 基础设施层 (Data Structure)**
-
-* **SeqList**: 动态顺序表，替代 std::vector。  
-* **LinkList**: 双向/单向链表，支持 fake\_remove（假删除）和 auto\_insert（自动恢复），专为撤销机制优化。  
-* **Fake\_Stack**: 基于队列实现的有限容量栈，用于限制用户的最大撤销步数（例如只保留最近 10 次操作）。  
-* **LinkQueue**: 链式队列，用于消息通知。
-
-## **🚀 编译与运行**
-
-本项目使用 CMake 进行构建。请确保您的环境已安装 cmake 和 g++ (或 clang++)。
-
-### **1\. 构建项目**
-
-在项目根目录下执行以下命令：
-
-\# 1\. 创建构建目录  
-mkdir build  
-cd build
-
-\# 2\. 生成 Makefile  
-cmake ..
-
-\# 3\. 编译  
-make
-
-### **2\. 运行程序**
-
-编译成功后，在 build 目录下运行可执行文件：
-
-./homework
-
-## **🧪 测试场景说明 (main.cpp)**
-
-main.cpp 中包含了一套“终极压力测试”，用于验证系统的健壮性。当首次运行（无数据）时，会自动执行以下场景：
-
-1. **栈溢出测试 (The Stack Overflow)**  
-   * 模拟用户疯狂操作（如连续点赞/取消赞 15 次）。  
-   * **验证点**：系统应仅保留最近的 10 次操作，早期的操作被安全丢弃且不内存泄漏。  
-2. **“幽灵”互动测试 (The Ghost Interaction)**  
-   * 模拟用户删除帖子后，其他用户（或管理员）试图对该帖子进行操作。  
-   * **验证点**：验证 Action 对象在帖子被“逻辑删除”后是否依然持有有效的节点指针，以及撤销删除后内容是否能完美复原。  
-3. **深度楼中楼递归 (Nested Replies)**  
-   * 创建 10 层嵌套的评论回复。  
-   * **验证点**：JSON 解析器能否正确处理深层依赖，正确重建每一层评论的楼层引用关系。  
-4. **毁灭性冲突测试 (Destructive Conflict)**  
-   * 用户 A 删除帖子，导致用户 B 对该贴的“删除评论”操作失效。  
-   * **验证点**：UndoManager 是否正确通知了用户 B 的 Action 进行 invalidate，防止用户 B 撤销时程序崩溃。
-
-## **🛠️ 关键技术细节**
-
-### **手写 JSON 解析与扁平化存储**
-
-为了解决对象间的循环引用和加载依赖（例如：Post 依赖 Author，Comment 依赖 Post 和 Author），FileManager 不使用嵌套结构，而是采用**扁平化**结构存储：
-
-{  
-  "clients": \[ ...所有用户... \],  
-  "posts": \[ ...所有帖子 (包含 global\_id)... \],  
-  "comments": \[ ...所有评论 (通过 global\_id 引用帖子)... \]  
+示例 JSON 结构（节选）
+```json
+{
+  "clients": [{ "name": "Alice", "id": "alice_id", "posts": ["Alice_0"] }],
+  "posts":   [{ "global_id": "Alice_0", "author": "Alice", "likers": ["Bob"] }],
+  "comments":[{ "post": "Alice_0", "author": "Charlie", "reply_floor": 2 }],
+  "friend_edges": [{ "a": "Alice", "b": "Bob" }]
 }
+```
 
-加载时分为四步：
+## 数据结构速览
+- **SeqList**：可扩容顺序表，替代 std::vector。
+- **LinkList**：带 fake_remove/auto_insert 的链表，服务撤销与节点稳定地址。
+- **Fake_Stack**：带容量上限的撤销栈，避免无界内存占用。
+- **SearchTree/AVLTree**：基于名字的用户索引用于快速查找。
+- **HuffmanTree**：对字符串统计词频、生成编码、压缩/解压并计算 WPL。
 
-1. 加载所有 Client（内存地址固定）。  
-2. 加载所有 Post，链接 Author 指针。  
-3. 加载所有 Comment，链接 Post 和 Author 指针。  
-4. 根据临时表，链接所有 Likers（点赞者）指针。
+## 构建与运行
+```bash
+mkdir -p build
+cd build
+cmake ..
+make
+./homework           # 可执行文件输出在 build/ 目录
+```
+数据默认写入 `data/clients.json`（相对 build 目录路径为 `../data/clients.json`）。
 
-### **内存安全与撤销**
+## 集成测试场景 (main.cpp)
+- 栈溢出保护：疯狂点赞/取消仅保留最近 N 步撤销，验证 Fake_Stack 容量限制与无泄漏。
+- 幽灵互动：帖子被逻辑删除后其他 Action 如何被 invalidate，撤销仍可安全恢复。
+- 楼中楼递归：多层评论引用与 JSON 重建的依赖顺序验证。
+- 毁灭性冲突：跨用户删除/撤销交叉，UndoManager 是否正确广播失效通知。
+- 哈夫曼分析：长帖压缩/解压、编码表和 WPL 计算展示。
+- 社交图谱：好友链距离、孤岛用户接入，以及 BFS/DFS 遍历输出。
+- 排行榜：好友数影响力榜与全局热帖榜的排序正确性。
 
-在不使用 std::shared\_ptr 的情况下，为了防止撤销操作访问已被 delete 的对象：
+## GUI 集成要点
+- 数据入口唯一：界面层只需调用 `Core::instance()` 提供的接口 (注册/发帖/评论/点赞/撤销/好友操作/排行/图谱/Huffman)。
+- 排行与展示：  
+  - `getUserInfluenceRanking(topN)` 返回 Client* 顺序表，可直接渲染影响力榜。  
+  - `getHotPostRanking(topN)` 与 `getTopPostsForClient(client, topN)` 提供全局与个人热帖。  
+- 图谱可视化：  
+  - `getRelationDistance(a, b)` 显示最短距离。  
+  - `getShortestRelationPath(a, b)`/`getDepthFirstRelationPath(a, b)` 给出路径节点序列。  
+  - `getBfsRelationTraversal(root)`/`getDfsRelationTraversal(root)` 可用于层级树/力导向图。  
+- Huffman 分析：界面展示 `getHuffmanAnalysisResult(post)` 的编码/压缩/解压摘要。  
+- 消息流：`userReadMessages(client)` 拉取并清空消息队列，可用于通知中心。
 
-* **Fake Remove**: 链表的删除操作 fake\_remove 仅将节点从链表断开，但**不释放内存**。该节点被 Action 接管。  
-* **Observer Pattern**: UndoManager 充当观察者。当一个对象被**真正**析构时，它会通知所有持有该对象引用的 Action，将其内部指针置为 nullptr。
+## 接口速查 (Core.h)
+- 账号：`registerClient(name, id, pwd)`，`getClientByName(name)`。
+- 内容：`userAddPost(user, title, content)`，`userDeletePost(user, index|Post*)`，`userAddComment(user, post, content, reply_floor)`，`userDeleteComment(user, post, floor)`，`userLikePost(user, post)`。
+- 撤销：`userUndo(user)`。
+- 消息：`userReadMessages(user)`。
+- 社交：`makeFriend(a, b)`，`deleteFriend(a, b)`，`getRelationDistance(a, b)`。
+- 图谱遍历：`getShortestRelationPath` / `getDepthFirstRelationPath` / `getBfsRelationTraversal` / `getDfsRelationTraversal`。
+- 排行：`getUserInfluenceRanking(topN)`，`getHotPostRanking(topN)`，`getTopPostsForClient(client, topN)`。
+- 分析：`analyzePostContent(post)`，`getHuffmanAnalysisResult(post)`。
+
+## 拓展与优化方向
+- GUI/前端：可增加“消息中心”、“关系可视化”与“哈夫曼分析”面板，提供撤销历史列表与 Top-N 榜单快速跳转。
+- 性能：为 FileManager 增加简单校验/增量保存；为 Huffman/排序添加性能计时便于教学对比。
+- 安全：可在 Core 层补充权限/输入校验；为 Undo/Redo 预留双向栈实现 redo。
+- 数据结构实验：替换自研容器为 std 版本作对比实验，或扩展图为加权/有向图并加入最短路 (Dijkstra)。
+- 观测：在 main 或 GUI 中增加日志开关，便于演示 fake_remove/invalidate 等内部行为。
+
+## 开发者QQ
+- 某不愿意透露姓名的肥宅： 2523796700
+- 某不愿意透露姓名的神秘男: 2390572866
+
+## 开发小记
+- 用户唯一索引为 Name，ID 格式不再限制。
+- Graph 与用户顺序表共存；重建/加载时保持指针稳定，需要按 FileManager 的多遍流程处理。
+- 若添加 GUI，可直接调用 Core 的 ranking/graph/huffman 接口获取展示数据。
