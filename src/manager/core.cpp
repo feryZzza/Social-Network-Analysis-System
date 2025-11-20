@@ -382,3 +382,23 @@ void Core::analyzePostContent(Post* post) {
     }
     cout << "=============================================" << endl;
 }
+
+// 实现排行榜功能
+
+void Core::showUserRanking() {
+    if (all_clients.size() == 0) {
+        cout << "[系统提示] 当前没有任何用户数据。" << endl;
+        return;
+    }
+    // 使用内置的成员变量 sorter，而不是重复实例化
+    sorter.haoyoushu(all_clients);
+}
+
+void Core::showHotPostRanking() {
+    if (all_clients.size() == 0) {
+        cout << "[系统提示] 当前没有任何用户数据。" << endl;
+        return;
+    }
+    // 使用内置的成员变量 sorter，而不是重复实例化
+    sorter.dianzanshu(all_clients);
+}

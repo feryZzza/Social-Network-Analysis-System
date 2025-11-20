@@ -12,6 +12,7 @@
 #include "data_structure/huffman.h" // 引入哈夫曼模块
 #include "data_structure/search_tree.h" // 引入搜索树模块
 #include "models/social_graph.h"// 引入社交图模块
+#include "models/sort.h" // 引入排序模块
 #include <string>
 
 // 定义操作状态码
@@ -28,6 +29,7 @@ enum CoreStatus {
     ERR_ALREADY_FRIENDS,
     ERR_SELF_FRIEND 
 };
+
 class AVL_node {
 public:
     std::string name; // 存储名字副本，用于比较键
@@ -63,11 +65,12 @@ private:
     SeqList<Client> all_clients; // 系统维护的所有客户端数据
     AVLTree<AVL_node> client_index; // 使用 AVL_node 作为索引元素
     SocialGraph social_net;// 社交图对象
+    Sorter sorter; // 内置排序器成员变量
 
     bool is_avl_init = false; //平衡树是否初始化 
     
     // 单例模式
-    Core() : all_clients(100),social_net(100) {} 
+    Core() : all_clients(100), social_net(100) {} 
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 
@@ -93,10 +96,6 @@ public:
     SeqList<Client>& getAllClients() { return all_clients; }
     
     Client* getClientByName(const std::string& name);
-
-
-
-    // --- 业务功能 ---
 
     // 注册新用户
     CoreStatus registerClient(const std::string& name, const std::string& id, const std::string& password);
@@ -134,6 +133,10 @@ public:
 
     // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压
     void analyzePostContent(Post* post);
+
+    // 排行榜功能接口
+    void showUserRanking();      // 展示用户影响力排行榜
+    void showHotPostRanking();   // 展示全局热门帖子排行榜
 };
 
 #endif
