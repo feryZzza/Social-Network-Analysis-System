@@ -122,15 +122,18 @@ void MainWindow::buildUi() {
 
     QPushButton* userRankingButton = new QPushButton(tr("用户影响力榜"), leftPanel);
     QPushButton* postRankingButton = new QPushButton(tr("热门帖子榜"), leftPanel);
-    QPushButton* relationChainButton = new QPushButton(tr("好友关系链"), leftPanel);
+    QPushButton* relationChainButton = new QPushButton(tr("最短关系链 (BFS)"), leftPanel);
+    QPushButton* traversalButton = new QPushButton(tr("关系遍历对比"), leftPanel);
     connect(userRankingButton, &QPushButton::clicked, this, &MainWindow::handleShowUserRanking);
     connect(postRankingButton, &QPushButton::clicked, this, &MainWindow::handleShowHotPostRanking);
     connect(relationChainButton, &QPushButton::clicked, this, &MainWindow::handleShowRelationChain);
+    connect(traversalButton, &QPushButton::clicked, this, &MainWindow::handleShowRelationTraversal);
     QGroupBox* rankingBox = new QGroupBox(tr("排行榜"), leftPanel);
     QVBoxLayout* rankingLayout = new QVBoxLayout(rankingBox);
     rankingLayout->addWidget(userRankingButton);
     rankingLayout->addWidget(postRankingButton);
     rankingLayout->addWidget(relationChainButton);
+    rankingLayout->addWidget(traversalButton);
 
     leftLayout->addWidget(heroTitle);
     leftLayout->addWidget(heroSubtitle);
@@ -841,6 +844,14 @@ void MainWindow::handleShowHotPostRanking() {
 }
 
 void MainWindow::handleShowRelationChain() {
+    showRelationChainDialog(false);
+}
+
+void MainWindow::handleShowDFSRelationChain() {
+    showRelationChainDialog(true);
+}
+
+void MainWindow::showRelationChainDialog(bool useDFS) {
     SeqList<Client>& clients = core.getAllClients();
     if (clients.size() < 2) {
         showStatusMessage(tr("用户数量不足，无法计算关系链。"), true);
@@ -873,7 +884,9 @@ void MainWindow::handleShowRelationChain() {
         return;
     }
 
-    SeqList<Client*> path = core.getShortestRelationPath(clientA, clientB);
+    SeqList<Client*> path = useDFS
+                                ? core.getDepthFirstRelationPath(clientA, clientB)
+                                : core.getShortestRelationPath(clientA, clientB);
     if (path.empty()) {
         showStatusMessage(tr("这两个用户之间暂无任何关系链。"), true);
         return;
@@ -888,10 +901,90 @@ void MainWindow::handleShowRelationChain() {
     }
 
     int distance = static_cast<int>(path.size()) - 1;
-    QString message = tr("关系距离：%1\n关系链：%2")
+    QString algo = useDFS ? tr("DFS") : tr("BFS");
+    QString message = tr("[%1] 关系距离：%2\n关系链：%3")
+                          .arg(algo)
                           .arg(distance)
                           .arg(chain.join(QStringLiteral(" → ")));
-    QMessageBox::information(this, tr("最近关系链"), message);
+    QMessageBox::information(this, tr("好友关系链"), message);
+}
+
+void MainWindow::handleShowRelationTraversal() {
+    SeqList<Client>& clients = core.getAllClients();
+    if (clients.size() == 0) {
+        showStatusMessage(tr("当前没有用户，无法生成遍历结果。"), true);
+        return;
+    }
+
+    QStringList options;
+    for (int i = 0; i < clients.size(); ++i) {
+        options << QString::fromStdString(clients[i].Name());
+    }
+
+    bool ok = false;
+    QString selected = QInputDialog::getItem(this, tr("选择根用户"),
+                                             tr("用户："), options, 0, false, &ok);
+    if (!ok || selected.isEmpty()) return;
+
+    Client* root = core.getClientByName(selected.toStdString());
+    if (!root) {
+        showStatusMessage(tr("用户不存在。"), true);
+        return;
+    }
+
+    SeqList<Core::RelationNode> bfsNodes = core.getBfsRelationTraversal(root);
+    SeqList<Core::RelationNode> dfsNodes = core.getDfsRelationTraversal(root);
+
+    if (bfsNodes.empty() && dfsNodes.empty()) {
+        showStatusMessage(tr("该用户暂时没有任何可遍历的好友关系。"), true);
+        return;
+    }
+
+    QString text;
+    text += formatTraversal(bfsNodes, tr("BFS 层级遍历"));
+    text += "\n";
+    text += formatTraversal(dfsNodes, tr("DFS 深度遍历"));
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("关系遍历对比"));
+    dialog.resize(600, 500);
+
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    QTextEdit* view = new QTextEdit(&dialog);
+    view->setReadOnly(true);
+    view->setFont(QFont("Consolas", 10));
+    view->setPlainText(text);
+
+    QPushButton* closeBtn = new QPushButton(tr("关闭"), &dialog);
+    closeBtn->setProperty("ghost", true);
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    layout->addWidget(view);
+    layout->addWidget(closeBtn, 0, Qt::AlignRight);
+
+    dialog.exec();
+}
+
+QString MainWindow::formatTraversal(const SeqList<Core::RelationNode>& nodes,
+                                    const QString& title) const {
+    QStringList lines;
+    lines << title;
+
+    if (nodes.empty()) {
+        lines << tr("  (无可达节点)");
+        return lines.join("\n");
+    }
+
+    for (int i = 0; i < nodes.size(); ++i) {
+        const Core::RelationNode& node = nodes[i];
+        QString name = node.client ? QString::fromStdString(node.client->Name()) : tr("未知");
+        QString indent;
+        if (node.depth > 0) {
+            indent = QString(node.depth * 2, QChar(' '));
+        }
+        lines << QString("%1• %2 (层级 %3)").arg(indent, name).arg(node.depth);
+    }
+    return lines.join("\n");
 }
 
 void MainWindow::applyTheme() {

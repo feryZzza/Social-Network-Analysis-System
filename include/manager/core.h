@@ -146,6 +146,13 @@ public:
     SeqList<Post*> getHotPostRanking(int topN = 10);
     SeqList<Post*> getTopPostsForClient(Client* client, int topN = 3);
     SeqList<Client*> getShortestRelationPath(Client* a, Client* b);
+    SeqList<Client*> getDepthFirstRelationPath(Client* a, Client* b);
+    struct RelationNode {
+        Client* client = nullptr;
+        int depth = 0;
+    };
+    SeqList<RelationNode> getBfsRelationTraversal(Client* root);
+    SeqList<RelationNode> getDfsRelationTraversal(Client* root);
 };
 
 #endif

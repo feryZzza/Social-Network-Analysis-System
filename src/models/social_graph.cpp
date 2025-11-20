@@ -161,6 +161,86 @@ bool SocialGraph::shortestPath(int start, int target, LinkList<int>& path) const
     return true;
 }
 
+bool SocialGraph::depthFirstPath(int start, int target, LinkList<int>& path) const {
+    if (!validVertex(start) || !validVertex(target) || userForm == nullptr) {
+        return false;
+    }
+
+    while (!path.empty()) {
+        path.remove(0);
+    }
+
+    const int count = static_cast<int>(vertex_count_);
+    SeqList<bool> visited(count, count);
+    SeqList<int> buffer(count);
+
+    for (int i = 0; i < count; ++i) {
+        visited.setx(i, false);
+    }
+
+    return depthFirstSearchPath(start, target, visited, buffer, path);
+}
+
+bool SocialGraph::breadthFirstTraversal(int start, LinkList<TraversalStep>& order) const {
+    if (!validVertex(start) || userForm == nullptr) return false;
+
+    while (!order.empty()) {
+        order.remove(0);
+    }
+
+    const int count = static_cast<int>(vertex_count_);
+    SeqList<bool> visited(count, count);
+    SeqList<int> depth(count, count);
+    for (int i = 0; i < count; ++i) {
+        visited.setx(i, false);
+        depth.setx(i, -1);
+    }
+
+    LinkQueue<int> q;
+    visited.setx(start, true);
+    depth.setx(start, 0);
+    q.enqueue(start);
+
+    while (!q.empty()) {
+        int current = q.dequeue();
+        int currentDepth = 0;
+        depth.getx(current, currentDepth);
+        order.add(TraversalStep(current, currentDepth));
+
+        LinkList<int>& neighbors = (*userForm)[current];
+        for (int i = 0; i < neighbors.size(); ++i) {
+            int neighbor = neighbors[i];
+            bool visitedFlag;
+            visited.getx(neighbor, visitedFlag);
+            if (!visitedFlag) {
+                visited.setx(neighbor, true);
+                int nextDepth = currentDepth + 1;
+                depth.setx(neighbor, nextDepth);
+                q.enqueue(neighbor);
+            }
+        }
+    }
+
+    return !order.empty();
+}
+
+bool SocialGraph::depthFirstTraversal(int start, LinkList<TraversalStep>& order) const {
+    if (!validVertex(start) || userForm == nullptr) return false;
+
+    while (!order.empty()) {
+        order.remove(0);
+    }
+
+    const int count = static_cast<int>(vertex_count_);
+    SeqList<bool> visited(count, count);
+    for (int i = 0; i < count; ++i) {
+        visited.setx(i, false);
+    }
+
+    depthFirstTraversalInternal(start, 0, visited, order);
+    return !order.empty();
+}
+
 bool SocialGraph::validVertex(int v) const {
     return v >= 0 && static_cast<std::size_t>(v) < vertex_count_;
 }
@@ -170,4 +250,61 @@ const LinkList<int>* SocialGraph::getNeighbors(int u) const {
         return nullptr;
     }
     return &(*userForm)[u];
+}
+
+bool SocialGraph::depthFirstSearchPath(int current, int target, SeqList<bool>& visited,
+                                   SeqList<int>& buffer, LinkList<int>& path) const {
+    bool visitFlag = false;
+    visited.getx(current, visitFlag);
+    if (visitFlag) return false;
+
+    visited.setx(current, true);
+    buffer.add(current);
+
+    if (current == target) {
+        while (!path.empty()) {
+            path.remove(0);
+        }
+        for (int i = 0; i < buffer.size(); ++i) {
+            path.add(buffer[i]);
+        }
+        return true;
+    }
+
+    LinkList<int>& neighbors = (*userForm)[current];
+    for (int i = 0; i < neighbors.size(); ++i) {
+        int neighbor = neighbors[i];
+        bool neighborVisited = false;
+        visited.getx(neighbor, neighborVisited);
+        if (!neighborVisited) {
+            if (depthFirstSearchPath(neighbor, target, visited, buffer, path)) {
+                return true;
+            }
+        }
+    }
+
+    if (buffer.size() > 0) {
+        buffer.remove(buffer.size() - 1);
+    }
+    return false;
+}
+
+void SocialGraph::depthFirstTraversalInternal(int current, int depth, SeqList<bool>& visited,
+                                              LinkList<TraversalStep>& order) const {
+    bool visitFlag = false;
+    visited.getx(current, visitFlag);
+    if (visitFlag) return;
+
+    visited.setx(current, true);
+    order.add(TraversalStep(current, depth));
+
+    LinkList<int>& neighbors = (*userForm)[current];
+    for (int i = 0; i < neighbors.size(); ++i) {
+        int neighbor = neighbors[i];
+        bool neighborVisited = false;
+        visited.getx(neighbor, neighborVisited);
+        if (!neighborVisited) {
+            depthFirstTraversalInternal(neighbor, depth + 1, visited, order);
+        }
+    }
 }

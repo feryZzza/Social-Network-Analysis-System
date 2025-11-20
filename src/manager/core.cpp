@@ -459,3 +459,76 @@ SeqList<Client*> Core::getShortestRelationPath(Client* a, Client* b) {
     }
     return result;
 }
+
+SeqList<Client*> Core::getDepthFirstRelationPath(Client* a, Client* b) {
+    int capacity = all_clients.size() > 0 ? all_clients.size() : 1;
+    SeqList<Client*> result(capacity);
+    if (!a || !b) return result;
+
+    int idxA = getClientIndex(a);
+    int idxB = getClientIndex(b);
+    if (idxA == -1 || idxB == -1) return result;
+
+    LinkList<int> indexPath;
+    if (!social_net.depthFirstPath(idxA, idxB, indexPath)) {
+        return result;
+    }
+
+    for (int i = 0; i < indexPath.size(); ++i) {
+        int idx = indexPath[i];
+        if (idx >= 0 && idx < all_clients.size()) {
+            result.add(&all_clients[idx]);
+        }
+    }
+    return result;
+}
+
+SeqList<Core::RelationNode> Core::getBfsRelationTraversal(Client* root) {
+    int capacity = all_clients.size() > 0 ? all_clients.size() : 1;
+    SeqList<RelationNode> result(capacity);
+    if (!root) return result;
+
+    int rootIdx = getClientIndex(root);
+    if (rootIdx == -1) return result;
+
+    LinkList<TraversalStep> steps;
+    if (!social_net.breadthFirstTraversal(rootIdx, steps)) {
+        return result;
+    }
+
+    for (int i = 0; i < steps.size(); ++i) {
+        TraversalStep step = steps[i];
+        if (step.vertex >= 0 && step.vertex < all_clients.size()) {
+            RelationNode node;
+            node.client = &all_clients[step.vertex];
+            node.depth = step.depth;
+            result.add(node);
+        }
+    }
+    return result;
+}
+
+SeqList<Core::RelationNode> Core::getDfsRelationTraversal(Client* root) {
+    int capacity = all_clients.size() > 0 ? all_clients.size() : 1;
+    SeqList<RelationNode> result(capacity);
+    if (!root) return result;
+
+    int rootIdx = getClientIndex(root);
+    if (rootIdx == -1) return result;
+
+    LinkList<TraversalStep> steps;
+    if (!social_net.depthFirstTraversal(rootIdx, steps)) {
+        return result;
+    }
+
+    for (int i = 0; i < steps.size(); ++i) {
+        TraversalStep step = steps[i];
+        if (step.vertex >= 0 && step.vertex < all_clients.size()) {
+            RelationNode node;
+            node.client = &all_clients[step.vertex];
+            node.depth = step.depth;
+            result.add(node);
+        }
+    }
+    return result;
+}

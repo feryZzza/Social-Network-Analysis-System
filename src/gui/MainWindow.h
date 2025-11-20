@@ -39,6 +39,8 @@ private slots:
     void handleShowUserRanking();
     void handleShowHotPostRanking();
     void handleShowRelationChain();
+    void handleShowDFSRelationChain();
+    void handleShowRelationTraversal();
 
 private:
     void buildUi();
@@ -61,6 +63,8 @@ private:
     CoreStatus requireActiveClient() const;
     QString describeMessage(massege* msg) const;
     void applyTheme();
+    void showRelationChainDialog(bool useDFS);
+    QString formatTraversal(const SeqList<Core::RelationNode>& nodes, const QString& title) const;
 
     Core& core;
     Client* currentClient = nullptr;
