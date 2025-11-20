@@ -131,8 +131,11 @@ public:
     // 获取两用户在社交图中的关系距离
     int getRelationDistance(Client* a, Client* b);
 
-    // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压
+    // 使用哈夫曼树分析帖子内容，显示编码、压缩二进制并验证解压，调用下面的函数并且打印结果
     void analyzePostContent(Post* post);
+
+    // 获取哈夫曼分析结果字符串，这个gui需要调用
+    std::string getHuffmanAnalysisResult(Post* post);
 
     // 排行榜功能接口
     void showUserRanking();      // 展示用户影响力排行榜

@@ -14,6 +14,7 @@
 #include <QVector>
 #include <QVBoxLayout>
 #include <QListWidgetItem>
+#include <QDialog>
 #include <string>
 
 namespace {
@@ -138,24 +139,28 @@ void MainWindow::buildUi() {
     addPostButton = new QPushButton(tr("发布新帖子..."), rightPanel);
     deletePostButton = new QPushButton(tr("删除帖子"), rightPanel);
     likePostButton = new QPushButton(tr("点赞 / 取消赞"), rightPanel);
+    analyzePostButton = new QPushButton(tr("内容分析 (Huffman)"), rightPanel); // [新增]
     undoButton = new QPushButton(tr("撤销上一步"), rightPanel);
     readMessagesButton = new QPushButton(tr("读取消息"), rightPanel);
 
     connect(addPostButton, &QPushButton::clicked, this, &MainWindow::handleOpenAddPostDialog);
     connect(deletePostButton, &QPushButton::clicked, this, &MainWindow::handleDeletePost);
     connect(likePostButton, &QPushButton::clicked, this, &MainWindow::handleLikePost);
+    connect(analyzePostButton, &QPushButton::clicked, this, &MainWindow::handleAnalyzePost); // [新增]
     connect(undoButton, &QPushButton::clicked, this, &MainWindow::handleUndo);
     connect(readMessagesButton, &QPushButton::clicked, this, &MainWindow::handleReadMessages);
 
     addPostButton->setProperty("accent", true);
     deletePostButton->setProperty("danger", true);
     likePostButton->setProperty("ghost", true);
+    analyzePostButton->setProperty("ghost", true); // 设置样式
     undoButton->setProperty("ghost", true);
     readMessagesButton->setProperty("ghost", true);
 
     postActionLayout->addWidget(addPostButton);
     postActionLayout->addWidget(deletePostButton);
     postActionLayout->addWidget(likePostButton);
+    postActionLayout->addWidget(analyzePostButton); // [新增]
     postActionLayout->addWidget(undoButton);
     postActionLayout->addWidget(readMessagesButton);
 
@@ -441,6 +446,7 @@ void MainWindow::updateActionButtons() {
         deletePostButton->setEnabled(canDelete);
     }
     if (likePostButton) likePostButton->setEnabled(hasClient && hasPost);
+    if (analyzePostButton) analyzePostButton->setEnabled(hasPost); // 只要有帖子就能分析，不需要用户登录
     if (addCommentButton) addCommentButton->setEnabled(hasClient && hasPost);
     if (undoButton) undoButton->setEnabled(hasClient);
     if (readMessagesButton) readMessagesButton->setEnabled(hasClient);
@@ -549,6 +555,35 @@ void MainWindow::handleLikePost() {
         showPostDetails(post);
     }
     showStatusMessage(statusToText(status), status != SUCCESS);
+}
+
+void MainWindow::handleAnalyzePost() {
+    Post* post = resolvePostFromItem(postList->currentItem());
+    if (!post) {
+        showStatusMessage(tr("请选择一个帖子进行分析。"), true);
+        return;
+    }
+
+    std::string analysis = core.getHuffmanAnalysisResult(post);
+    
+    // 创建一个自定义 Dialog 显示结果
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("哈夫曼压缩分析报告"));
+    dialog.resize(600, 500);
+    
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    QTextEdit* textEdit = new QTextEdit(&dialog);
+    textEdit->setReadOnly(true);
+    textEdit->setPlainText(QString::fromStdString(analysis));
+    textEdit->setFont(QFont("Consolas", 10)); // 使用等宽字体显示对齐
+    
+    QPushButton* closeBtn = new QPushButton(tr("关闭"), &dialog);
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    
+    layout->addWidget(textEdit);
+    layout->addWidget(closeBtn);
+    
+    dialog.exec();
 }
 
 void MainWindow::handleAddComment() {

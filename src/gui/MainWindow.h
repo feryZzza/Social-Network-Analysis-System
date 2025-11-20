@@ -29,6 +29,7 @@ private slots:
     void handleOpenAddPostDialog();
     void handleDeletePost();
     void handleLikePost();
+    void handleAnalyzePost(); // [新增] 处理哈夫曼分析
     void handleAddComment();
     void handleUndo();
     void handleReadMessages();
@@ -76,6 +77,7 @@ private:
     QPushButton* addPostButton = nullptr;
     QPushButton* deletePostButton = nullptr;
     QPushButton* likePostButton = nullptr;
+    QPushButton* analyzePostButton = nullptr; // [新增] 分析按钮
     QPushButton* addCommentButton = nullptr;
     QPushButton* undoButton = nullptr;
     QPushButton* readMessagesButton = nullptr;

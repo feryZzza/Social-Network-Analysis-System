@@ -312,15 +312,20 @@ int Core::getRelationDistance(Client* a, Client* b) {
 
 //内嵌哈夫曼编码对帖子内容进行深度分析，展示压缩效果
 void Core::analyzePostContent(Post* post) {
+    cout << getHuffmanAnalysisResult(post) << endl;
+}
+
+// GUI 版哈夫曼分析，返回结果字符串
+string Core::getHuffmanAnalysisResult(Post* post) {
     if (!post) {
-        cout << "[错误] 帖子不存在，无法分析。" << endl;
-        return;
+        return "[错误] 帖子不存在，无法分析。";
     }
 
-    cout << "\n=============================================" << endl;
-    cout << "       哈夫曼压缩分析 (Huffman Analysis)" << endl;
-    cout << "=============================================" << endl;
-    cout << "目标帖子: " << post->get_title() << endl;
+    stringstream ss;
+    ss << "=============================================\n";
+    ss << "       哈夫曼压缩分析 (Huffman Analysis)\n";
+    ss << "=============================================\n";
+    ss << "目标帖子: " << post->get_title() << "\n\n";
 
     string fullText = "";// 拼接标题和正文及评论内容
     fullText += post->get_title();   // 标题
@@ -331,12 +336,11 @@ void Core::analyzePostContent(Post* post) {
     }
 
     if (fullText.empty()) {
-        cout << "[提示] 帖子内容为空，无需分析。" << endl;
-        return;
+        return "[提示] 帖子内容为空，无需分析。";
     }
 
-    cout << "待分析原始文本长度: " << fullText.length() << " Bytes (不含元数据)" << endl;
-    cout << "正在构建哈夫曼树..." << endl;
+    ss << "待分析原始文本长度: " << fullText.length() << " Bytes\n";
+    ss << "正在构建哈夫曼树...\n\n";
 
     //统计频率
     SeqList<FreqPair> freqs(512); 
@@ -346,41 +350,39 @@ void Core::analyzePostContent(Post* post) {
     HuffmanTree huffTree(freqs);
     huffTree.generateCodes();
 
-    // 展示编码表
-    huffTree.printCodes();
-
     // 压缩内容
     string compressed = huffTree.compress(fullText);
     
     // 展示结果
-    cout << "\n[压缩结果]" << endl;
-    // 如果二进制串太长，截断显示
-    if (compressed.length() > 100) {
-        cout << "二进制流 (前100位): " << compressed.substr(0, 100) << "..." << endl;
+    ss << "[压缩结果]\n";
+    if (compressed.length() > 500) {
+        ss << "二进制流 (前500位): " << compressed.substr(0, 500) << "...\n";
     } else {
-        cout << "二进制流: " << compressed << endl;
+        ss << "二进制流: " << compressed << "\n";
     }
+    ss << "\n";
 
     // 计算压缩率
-    // 原始大小：fullText.length() * 8 bits (假设 ASCII/UTF-8 基础单元)
-    // 压缩大小：compressed.length() bits (0/1 字符串的长度即 bit 数)
     double originalBits = fullText.length() * 8.0;
     double compressedBits = compressed.length();
     double ratio = (1.0 - compressedBits / originalBits) * 100.0;
 
-    cout << "原始大小: " << originalBits << " bits" << endl;
-    cout << "压缩大小: " << compressedBits << " bits" << endl;
-    cout << "压缩率: " << fixed << setprecision(2) << ratio << "% (节省空间)" << endl;
-    cout << "WPL (带权路径长度): " << huffTree.getWPL() << endl;
+    ss << fixed << setprecision(2);
+    ss << "原始大小: " << (int)originalBits << " bits\n";
+    ss << "压缩大小: " << (int)compressedBits << " bits\n";
+    ss << "压缩率: " << ratio << "% (节省空间)\n";
+    ss << "WPL (带权路径长度): " << huffTree.getWPL() << "\n\n";
 
-    // 6. 解压验证
+    // 解压验证
     string decompressed = huffTree.decompress(compressed);
     if (decompressed == fullText) {
-        cout << "[验证] 解压成功！解压后内容与原文完全一致。" << endl;
+        ss << "✅ [验证] 解压成功！解压后内容与原文完全一致。\n";
     } else {
-        cout << "[错误] 解压失败！内容不匹配。" << endl;
+        ss << "❌ [错误] 解压失败！内容不匹配。\n";
     }
-    cout << "=============================================" << endl;
+    ss << "=============================================";
+
+    return ss.str();
 }
 
 // 实现排行榜功能
