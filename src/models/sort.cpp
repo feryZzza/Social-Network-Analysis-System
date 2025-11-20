@@ -202,6 +202,61 @@ void Sorter::sortPostIndices(bool (*compare)(const Post&, const Post&)) {//输�
     ShiyingSort(*postIndex, comparePostPtr);
 }
 
+SeqList<Client*> Sorter::buildUserRanking(SeqList<Client>& clients, int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    SeqList<Client*> result(capacity);
+    if (clients.size() == 0 || topN <= 0) return result;
+
+    initClientIndices(clients);
+    sortClientIndices(compareHaoyou);
+
+    int count = myMin(topN, clientIndex->size());
+    for (int i = 0; i < count; ++i) {
+        Client* user = (*clientIndex)[i];
+        if (user) {
+            result.add(user);
+        }
+    }
+    return result;
+}
+
+SeqList<Post*> Sorter::buildTopPostsForClient(Client& client, int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    SeqList<Post*> result(capacity);
+    if (client.posts.size() == 0 || topN <= 0) return result;
+
+    initPostIndices(client.posts);
+    sortPostIndices(comparePost);
+
+    int count = myMin(topN, postIndex->size());
+    for (int i = 0; i < count; ++i) {
+        Post* post = (*postIndex)[i];
+        if (post) {
+            result.add(post);
+        }
+    }
+    return result;
+}
+
+SeqList<Post*> Sorter::buildGlobalHotPosts(SeqList<Client>& users, int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    SeqList<Post*> result(capacity);
+    if (users.size() == 0 || topN <= 0) return result;
+
+    initGlobalPostIndices(users);
+    if (!postIndex || postIndex->size() == 0) return result;
+
+    sortPostIndices(comparePost);
+
+    int count = myMin(topN, postIndex->size());
+    for (int i = 0; i < count; ++i) {
+        Post* post = (*postIndex)[i];
+        if (post) {
+            result.add(post);
+        }
+    }
+    return result;
+}
 
 // 类的公开接口
 void Sorter::haoyoushu(SeqList<Client>& clients) {
@@ -210,15 +265,18 @@ void Sorter::haoyoushu(SeqList<Client>& clients) {
         return;
     }
 
-    initClientIndices(clients);
-    
-    sortClientIndices(compareHaoyou);
+    SeqList<Client*> ranking = buildUserRanking(clients, 10);
+    if (ranking.empty()) {
+        std::cout << "没有用户数据可生成排行榜" << std::endl;
+        return;
+    }
 
     std::cout << "\n=== 用户影响力排行榜（按好友数） ===" << std::endl;
-    int displayUserCnt = myMin(10, clientIndex->size());
+    int displayUserCnt = ranking.size();
+    int totalUserCnt = clientIndex ? clientIndex->size() : displayUserCnt;
     
     for (int i = 0; i < displayUserCnt; i++) {
-        Client* user = (*clientIndex)[i]; 
+        Client* user = ranking[i];
         if(!user) continue;
 
         std::cout << i + 1 << ". 用户ID: " << user->ID()
@@ -227,14 +285,12 @@ void Sorter::haoyoushu(SeqList<Client>& clients) {
             << ", 发布帖子数: " << user->posts.size() << std::endl;
 
         if (user->posts.size() > 0) {
-            initPostIndices(user->posts);
-            sortPostIndices(comparePost);
-
-            int displayPostCnt = myMin(3, postIndex->size());
+            SeqList<Post*> topPosts = buildTopPostsForClient(*user, 3);
+            int displayPostCnt = topPosts.size();
             if (displayPostCnt > 0) {
                 std::cout << "   个人热门帖子：" << std::endl;
                 for (int j = 0; j < displayPostCnt; j++) {
-                    Post* post = (*postIndex)[j];
+                    Post* post = topPosts[j];
                     if(post) {
                         std::cout << "     " << j + 1 << ". 帖子ID: " << post->get_idex()
                             << ", 标题: " << post->get_title()
@@ -245,8 +301,8 @@ void Sorter::haoyoushu(SeqList<Client>& clients) {
         }
     }
 
-    if (clientIndex->size() > 10) {
-        std::cout << "... 还有 " << clientIndex->size() - 10 << " 名用户未显示" << std::endl;
+    if (totalUserCnt > displayUserCnt) {
+        std::cout << "... 还有 " << totalUserCnt - displayUserCnt << " 名用户未显示" << std::endl;
     }
 }
 
@@ -257,19 +313,17 @@ void Sorter::dianzanshu(SeqList<Client>& users) {
         return;
     }
 
-    initGlobalPostIndices(users);
-    
-    if (postIndex->size() == 0) {
+    SeqList<Post*> hotPosts = buildGlobalHotPosts(users, 10);
+    if (hotPosts.empty()) {
         std::cout << "没有帖子数据可生成排行榜" << std::endl;
         return;
     }
 
-    sortPostIndices(comparePost);
-
     std::cout << "\n=== 全局热门帖子排行榜（按点赞数） ===" << std::endl;
-    int displayPostCnt = myMin(10, postIndex->size());
+    int displayPostCnt = hotPosts.size();
+    int totalPostCnt = postIndex ? postIndex->size() : displayPostCnt;
     for (int i = 0; i < displayPostCnt; i++) {
-        Post* post = (*postIndex)[i];
+        Post* post = hotPosts[i];
         if(!post) continue;
 
         std::string authorName = post->author ? post->author->Name() : "未知";
@@ -280,7 +334,7 @@ void Sorter::dianzanshu(SeqList<Client>& users) {
             << ", 点赞数: " << post->likes_num() << std::endl;
     }
 
-    if (postIndex->size() > 10) {
-        std::cout << "... 还有 " << postIndex->size() - 10 << " 个帖子未显示" << std::endl;
+    if (totalPostCnt > displayPostCnt) {
+        std::cout << "... 还有 " << totalPostCnt - displayPostCnt << " 个帖子未显示" << std::endl;
     }
 }

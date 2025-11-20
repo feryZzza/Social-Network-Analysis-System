@@ -23,6 +23,11 @@ public:
     // 生成全局热门帖子排行榜 (基于点赞数)
     void dianzanshu(SeqList<Client>& users);
 
+    // 返回排行结果，供 GUI 使用
+    SeqList<Client*> buildUserRanking(SeqList<Client>& clients, int topN = 10);
+    SeqList<Post*> buildGlobalHotPosts(SeqList<Client>& users, int topN = 10);
+    SeqList<Post*> buildTopPostsForClient(Client& client, int topN = 3);
+
 private:
 
     SeqList<Client*>* clientIndex = nullptr;

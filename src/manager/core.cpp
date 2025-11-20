@@ -404,3 +404,58 @@ void Core::showHotPostRanking() {
     // 使用内置的成员变量 sorter，而不是重复实例化
     sorter.dianzanshu(all_clients);
 }
+
+SeqList<Client*> Core::getUserInfluenceRanking(int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    if (all_clients.size() == 0) {
+        SeqList<Client*> empty(capacity);
+        return empty;
+    }
+    return sorter.buildUserRanking(all_clients, topN);
+}
+
+SeqList<Post*> Core::getHotPostRanking(int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    if (all_clients.size() == 0) {
+        SeqList<Post*> empty(capacity);
+        return empty;
+    }
+    return sorter.buildGlobalHotPosts(all_clients, topN);
+}
+
+SeqList<Post*> Core::getTopPostsForClient(Client* client, int topN) {
+    int capacity = topN > 0 ? topN : 1;
+    if (!client) {
+        SeqList<Post*> empty(capacity);
+        return empty;
+    }
+    return sorter.buildTopPostsForClient(*client, topN);
+}
+
+SeqList<Client*> Core::getShortestRelationPath(Client* a, Client* b) {
+    int capacity = all_clients.size() > 0 ? all_clients.size() : 1;
+    SeqList<Client*> result(capacity);
+    if (!a || !b) return result;
+
+    int idxA = getClientIndex(a);
+    int idxB = getClientIndex(b);
+    if (idxA == -1 || idxB == -1) return result;
+
+    if (idxA == idxB) {
+        result.add(a);
+        return result;
+    }
+
+    LinkList<int> indexPath;
+    if (!social_net.shortestPath(idxA, idxB, indexPath)) {
+        return result;
+    }
+
+    for (int i = 0; i < indexPath.size(); ++i) {
+        int idx = indexPath[i];
+        if (idx >= 0 && idx < all_clients.size()) {
+            result.add(&all_clients[idx]);
+        }
+    }
+    return result;
+}

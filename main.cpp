@@ -1,7 +1,6 @@
 #include <iostream>
 #include "manager/core.h"
 #include <string>
-#include <vector> 
 
 using namespace std;
 

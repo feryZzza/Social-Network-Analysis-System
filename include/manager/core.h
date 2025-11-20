@@ -140,6 +140,12 @@ public:
     // 排行榜功能接口
     void showUserRanking();      // 展示用户影响力排行榜
     void showHotPostRanking();   // 展示全局热门帖子排行榜
+
+    // GUI 排行榜数据接口
+    SeqList<Client*> getUserInfluenceRanking(int topN = 10);
+    SeqList<Post*> getHotPostRanking(int topN = 10);
+    SeqList<Post*> getTopPostsForClient(Client* client, int topN = 3);
+    SeqList<Client*> getShortestRelationPath(Client* a, Client* b);
 };
 
 #endif

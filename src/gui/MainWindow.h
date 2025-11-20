@@ -36,6 +36,9 @@ private slots:
     void handleRefresh();
     void handleAddFriend();
     void handleRemoveFriend();
+    void handleShowUserRanking();
+    void handleShowHotPostRanking();
+    void handleShowRelationChain();
 
 private:
     void buildUi();

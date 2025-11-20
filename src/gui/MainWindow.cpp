@@ -15,6 +15,8 @@
 #include <QVBoxLayout>
 #include <QListWidgetItem>
 #include <QDialog>
+#include <QHeaderView>
+#include <QTableWidget>
 #include <string>
 
 namespace {
@@ -118,11 +120,24 @@ void MainWindow::buildUi() {
     friendBoxLayout->addWidget(friendList);
     friendBoxLayout->addLayout(friendButtonsLayout);
 
+    QPushButton* userRankingButton = new QPushButton(tr("用户影响力榜"), leftPanel);
+    QPushButton* postRankingButton = new QPushButton(tr("热门帖子榜"), leftPanel);
+    QPushButton* relationChainButton = new QPushButton(tr("好友关系链"), leftPanel);
+    connect(userRankingButton, &QPushButton::clicked, this, &MainWindow::handleShowUserRanking);
+    connect(postRankingButton, &QPushButton::clicked, this, &MainWindow::handleShowHotPostRanking);
+    connect(relationChainButton, &QPushButton::clicked, this, &MainWindow::handleShowRelationChain);
+    QGroupBox* rankingBox = new QGroupBox(tr("排行榜"), leftPanel);
+    QVBoxLayout* rankingLayout = new QVBoxLayout(rankingBox);
+    rankingLayout->addWidget(userRankingButton);
+    rankingLayout->addWidget(postRankingButton);
+    rankingLayout->addWidget(relationChainButton);
+
     leftLayout->addWidget(heroTitle);
     leftLayout->addWidget(heroSubtitle);
     leftLayout->addWidget(currentUserLabel);
     leftLayout->addWidget(clientBox);
     leftLayout->addWidget(friendBox);
+    leftLayout->addWidget(rankingBox);
     leftLayout->addStretch(1);
 
     // === Right panel ===
@@ -716,6 +731,169 @@ void MainWindow::handleRemoveFriend() {
     showStatusMessage(statusToText(status), status != SUCCESS);
 }
 
+void MainWindow::handleShowUserRanking() {
+    SeqList<Client*> ranking = core.getUserInfluenceRanking();
+    if (ranking.empty()) {
+        showStatusMessage(tr("暂无用户数据，无法生成排行榜。"), true);
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("用户影响力排行榜"));
+    dialog.resize(640, 420);
+
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    const int rowCount = ranking.size();
+    QTableWidget* table = new QTableWidget(rowCount, 5, &dialog);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSelectionMode(QAbstractItemView::NoSelection);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->setHorizontalHeaderLabels(
+        {tr("排名"), tr("昵称"), tr("ID"), tr("好友数"), tr("发帖数")});
+
+    for (int i = 0; i < rowCount; ++i) {
+        Client* client = ranking[i];
+        if (!client) continue;
+
+        QString tooltip;
+        SeqList<Post*> topPosts = core.getTopPostsForClient(client, 3);
+        if (!topPosts.empty()) {
+            QStringList lines;
+            lines << tr("热门帖子：");
+            for (int j = 0; j < topPosts.size(); ++j) {
+                Post* post = topPosts[j];
+                if (!post) continue;
+                lines << tr("%1. %2 (👍 %3)")
+                             .arg(j + 1)
+                             .arg(QString::fromStdString(post->get_title()))
+                             .arg(post->likes_num());
+            }
+            tooltip = lines.join("\n");
+        }
+
+        auto setItem = [&](int column, const QString& value) {
+            QTableWidgetItem* item = new QTableWidgetItem(value);
+            if (!tooltip.isEmpty()) {
+                item->setToolTip(tooltip);
+            }
+            table->setItem(i, column, item);
+        };
+
+        setItem(0, QString::number(i + 1));
+        setItem(1, QString::fromStdString(client->Name()));
+        setItem(2, QString::fromStdString(client->ID()));
+        setItem(3, QString::number(client->get_friends_num()));
+        setItem(4, QString::number(client->posts.size()));
+    }
+
+    layout->addWidget(table);
+    QPushButton* closeBtn = new QPushButton(tr("关闭"), &dialog);
+    closeBtn->setProperty("ghost", true);
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    layout->addWidget(closeBtn, 0, Qt::AlignRight);
+
+    dialog.exec();
+}
+
+void MainWindow::handleShowHotPostRanking() {
+    SeqList<Post*> hotPosts = core.getHotPostRanking();
+    if (hotPosts.empty()) {
+        showStatusMessage(tr("暂无帖子数据，无法生成排行榜。"), true);
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("全局热门帖子排行榜"));
+    dialog.resize(720, 420);
+
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    const int rowCount = hotPosts.size();
+    QTableWidget* table = new QTableWidget(rowCount, 5, &dialog);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSelectionMode(QAbstractItemView::NoSelection);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->setHorizontalHeaderLabels(
+        {tr("排名"), tr("标题"), tr("作者"), tr("点赞数"), tr("评论数")});
+
+    for (int i = 0; i < rowCount; ++i) {
+        Post* post = hotPosts[i];
+        if (!post) continue;
+        QString author = post->author ? QString::fromStdString(post->author->Name()) : tr("未知");
+
+        table->setItem(i, 0, new QTableWidgetItem(QString::number(i + 1)));
+        table->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(post->get_title())));
+        table->setItem(i, 2, new QTableWidgetItem(author));
+        table->setItem(i, 3, new QTableWidgetItem(QString::number(post->likes_num())));
+        table->setItem(i, 4, new QTableWidgetItem(QString::number(post->comments_num())));
+    }
+
+    layout->addWidget(table);
+    QPushButton* closeBtn = new QPushButton(tr("关闭"), &dialog);
+    closeBtn->setProperty("ghost", true);
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    layout->addWidget(closeBtn, 0, Qt::AlignRight);
+
+    dialog.exec();
+}
+
+void MainWindow::handleShowRelationChain() {
+    SeqList<Client>& clients = core.getAllClients();
+    if (clients.size() < 2) {
+        showStatusMessage(tr("用户数量不足，无法计算关系链。"), true);
+        return;
+    }
+
+    QStringList options;
+    for (int i = 0; i < clients.size(); ++i) {
+        options << QString::fromStdString(clients[i].Name());
+    }
+
+    bool ok = false;
+    QString first = QInputDialog::getItem(this, tr("选择第一个用户"),
+                                          tr("用户 A："), options, 0, false, &ok);
+    if (!ok || first.isEmpty()) return;
+
+    QString second = QInputDialog::getItem(this, tr("选择第二个用户"),
+                                           tr("用户 B："), options, 0, false, &ok);
+    if (!ok || second.isEmpty()) return;
+
+    if (first == second) {
+        showStatusMessage(tr("请选择两个不同的用户。"), true);
+        return;
+    }
+
+    Client* clientA = core.getClientByName(first.toStdString());
+    Client* clientB = core.getClientByName(second.toStdString());
+    if (!clientA || !clientB) {
+        showStatusMessage(tr("用户不存在。"), true);
+        return;
+    }
+
+    SeqList<Client*> path = core.getShortestRelationPath(clientA, clientB);
+    if (path.empty()) {
+        showStatusMessage(tr("这两个用户之间暂无任何关系链。"), true);
+        return;
+    }
+
+    QStringList chain;
+    for (int i = 0; i < path.size(); ++i) {
+        Client* c = path[i];
+        if (c) {
+            chain << QString::fromStdString(c->Name());
+        }
+    }
+
+    int distance = static_cast<int>(path.size()) - 1;
+    QString message = tr("关系距离：%1\n关系链：%2")
+                          .arg(distance)
+                          .arg(chain.join(QStringLiteral(" → ")));
+    QMessageBox::information(this, tr("最近关系链"), message);
+}
+
 void MainWindow::applyTheme() {
     const QString style = R"(
 QWidget {
@@ -848,6 +1026,22 @@ QLineEdit {
     border-radius: 10px;
     background: #ffffff;
     padding: 6px 10px;
+}
+QComboBox {
+    border: 1px solid #dbe1ec;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 6px 10px;
+    color: #1f2430;
+}
+QComboBox QAbstractItemView {
+    background: #ffffff;
+    color: #1f2430;
+    selection-background-color: #d5e4ff;
+}
+QInputDialog, QDialog {
+    background: #ffffff;
+    color: #1f2430;
 }
 QStatusBar {
     background: #ffffff;
